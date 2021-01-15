@@ -38,6 +38,9 @@
 #include "input.h"
 #include "emoncms.h"
 #include "mqtt.h"
+#ifdef ENABLE_SIM800L_MQTT
+#include "gsm_mqtt.h"
+#endif
 #include "divert.h"
 #include "ota.h"
 #include "lcd.h"
@@ -103,6 +106,9 @@ void setup()
 
   input_setup();
 
+#ifdef ENABLE_SIM800L_MQTT
+  gsm_mqtt_begin();
+#endif
   lcd_display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE);
   lcd_display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE);
 
@@ -188,6 +194,10 @@ loop() {
     }
 
     mqtt_loop();
+
+  #ifdef ENABLE_SIM800L_MQTT
+    gsm_mqtt_loop();
+  #endif
 
     // -------------------------------------------------------------------
     // Do these things once every 30 seconds

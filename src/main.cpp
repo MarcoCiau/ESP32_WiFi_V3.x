@@ -107,7 +107,9 @@ void setup()
   input_setup();
 
 #ifdef ENABLE_SIM800L_MQTT
+  disableLoopWDT();
   gsm_mqtt_begin();
+  enableLoopWDT();
 #endif
   lcd_display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE);
   lcd_display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE);
@@ -196,7 +198,9 @@ loop() {
     mqtt_loop();
 
   #ifdef ENABLE_SIM800L_MQTT
+    disableLoopWDT();
     gsm_mqtt_loop();
+    enableLoopWDT();
   #endif
 
     // -------------------------------------------------------------------

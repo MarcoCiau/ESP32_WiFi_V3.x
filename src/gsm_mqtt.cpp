@@ -37,9 +37,8 @@ const char* topicInit = "GsmClientTest/init";
 const char* topicLedStatus = "GsmClientTest/ledStatus";
 
 
-static long nextMqttReconnectAttempt = 0;
-static unsigned long mqttRestartTime = 0;
-static bool connecting = false;
+static long gsmNextMqttReconnectAttempt = 0;
+static unsigned long gsmMqttRestartTime = 0;
 
 String lastWillMsg = "";
 
@@ -61,9 +60,6 @@ TinyGsm modem(SIM800L_PORT);
 
 TinyGsmClient client(modem);
 PubSubClient mqtt(client);
-
-#define LED_PIN 2
-int ledStatus = LOW;
 
 uint32_t lastReconnectAttempt = 0;
 
@@ -149,10 +145,8 @@ void gsm_mqtt_callback(char* topic, byte* payload, unsigned int len)
 
 void gsm_mqtt_begin()
 {
-    pinMode(LED_PIN, OUTPUT);
-
+  DBUGLN("Begin GSM-MQTT...");
   // Set GSM module baud rate
-  // TinyGsmAutoBaud(SIM800L_PORT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
   SIM800L_PORT.begin(9600);
   delay(6000);
 
@@ -194,8 +188,6 @@ void gsm_mqtt_begin()
 #if TINY_GSM_USE_GPRS
   // GPRS connection parameters are usually set after network registration
     DBUG("Connecting to " + String(apn));
-    // SerialMon.print(F("Connecting to "));
-    // SerialMon.print(apn);
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
       DBUGLN(" fail");
       delay(10000);
@@ -216,12 +208,7 @@ void gsm_mqtt_begin()
 
 boolean gsm_mqtt_connect()
 {
-    if (connecting)
-    {
-        return false;
-    }
 
-    connecting = true;
     DBUGF("GSM-MQTT Connecting to... %s", broker);
 
     // Build the last will message
@@ -235,7 +222,7 @@ boolean gsm_mqtt_connect()
     serializeJson(willDoc, lastWillMsg);
     DBUGVAR(lastWillMsg);
 
-    boolean connectStatus = mqtt.connect(esp_hostname.c_str(), mqtt_user.c_str(), mqtt_pass.c_str(), (char*)mqtt_announce_topic.c_str(), MQTTQOS1, false, (char*)lastWillMsg.c_str());
+    boolean connectStatus = mqtt.connect(esp_hostname.c_str(), mqtt_user.c_str(), mqtt_pass.c_str(), mqtt_announce_topic.c_str(), MQTTQOS1, false, lastWillMsg.c_str());
 
     if (connectStatus)
     {
@@ -254,6 +241,7 @@ boolean gsm_mqtt_connect()
         serializeJson(doc, announce);
         DBUGVAR(announce);
         mqtt.publish((char*)mqtt_announce_topic.c_str(), (char*)announce.c_str(), true);
+        mqtt.publish(topicInit, "GsmClientTest started");
 
         // MQTT Topic to subscribe to receive RAPI commands via MQTT
         String mqtt_sub_topic = mqtt_topic + "/rapi/in/#";
@@ -273,10 +261,7 @@ boolean gsm_mqtt_connect()
 
         mqtt_sub_topic = mqtt_topic + "/divertmode/set";      // MQTT Topic to change divert mode
         mqtt.subscribe((char*)mqtt_sub_topic.c_str());
-
-        connecting = false;
     }
-
     return true;
 }
 
@@ -306,9 +291,9 @@ void gsm_mqtt_loop()
 {
     Profile_Start(gsm_mqtt_loop);
     // Restart MQTT connection is required?
-    if (mqttRestartTime > 0 && millis() > mqttRestartTime)
+    if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
     {
-        mqttRestartTime = 0;
+        gsmMqttRestartTime = 0;
 
         if (mqtt.connected())
         {
@@ -316,34 +301,38 @@ void gsm_mqtt_loop()
             mqtt.disconnect();
         }
 
-        nextMqttReconnectAttempt = 0;
+        gsmNextMqttReconnectAttempt = 0;
     }
-
-    // Try connect and reconnect every X seconds
 
     if (config_mqtt_enabled() && !mqtt.connected())
     {
         unsigned long now = millis();
         // try and reconnect every x seconds
-        if (now > nextMqttReconnectAttempt) 
+        if (millis() - gsmNextMqttReconnectAttempt > 10000L) 
         {
-            nextMqttReconnectAttempt = now + MQTT_CONNECT_TIMEOUT;
-            gsm_mqtt_connect(); // Attempt to reconnect
+            DBUGF("Trying GSM_MQTT Connect\n");
+            gsmNextMqttReconnectAttempt = now;
+            // gsm_mqtt_connect(); // Attempt to reconnect
+            if (gsm_mqtt_connect()) {
+              gsmNextMqttReconnectAttempt = 0;
+            }
         }
+      delay(100);
+      return;
     }
-
+    mqtt.loop();
     Profile_End(mqtt_loop, 5);
 }
 
 void gsm_mqtt_restart()
 {
   // If connected disconnect MQTT to trigger re-connect with new details
-  mqttRestartTime = millis();
+  gsmMqttRestartTime = millis();
 }
 
 boolean gsm_mqtt_connected()
 {
-    return mqtt.connected();
+  return mqtt.connected();
 }
 
 #endif

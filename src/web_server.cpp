@@ -35,6 +35,10 @@ typedef const __FlashStringHelper *fstr_t;
 #include "time_man.h"
 #include "tesla_client.h"
 
+#ifdef ENABLE_SIM800L_MQTT
+#include "gsm_mqtt.h"
+#endif
+
 MongooseHttpServer server;          // Create class for Web server
 
 bool enableCors = true;
@@ -361,6 +365,9 @@ handleSaveMqtt(MongooseHttpServerRequest *request) {
 
   // If connected disconnect MQTT to trigger re-connect with new details
   mqtt_restart();
+  #ifdef ENABLE_SIM800L_MQTT
+  gsm_mqtt_restart();
+  #endif
 }
 
 // -------------------------------------------------------------------

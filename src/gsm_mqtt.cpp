@@ -143,16 +143,10 @@ void gsm_mqtt_callback(char* topic, byte* payload, unsigned int len)
     }
 }
 
-void gsm_mqtt_begin()
+void sim800l_init()
 {
-  DBUGLN("Begin GSM-MQTT...");
-  // Set GSM module baud rate
-  SIM800L_PORT.begin(9600);
-  delay(6000);
-
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
-
   DBUGLN("Initializing SIM800L modem...");
   modem.restart();
   // modem.init();
@@ -199,7 +193,16 @@ void gsm_mqtt_begin()
     DBUGLN("GPRS connected");
   }
 #endif
+}
 
+void gsm_mqtt_begin()
+{
+  DBUGLN("Begin GSM-MQTT...");
+  // Set GSM module baud rate
+  SIM800L_PORT.begin(9600);
+  delay(1000);
+  // Init SIM800L Module
+  sim800l_init();
   // MQTT Broker setup
   mqtt.setServer(broker, brokerPort);
   mqtt.setCallback(gsm_mqtt_callback);
@@ -290,6 +293,8 @@ void gsm_mqtt_publish(JsonDocument &data)
 void gsm_mqtt_loop()
 {
     Profile_Start(gsm_mqtt_loop);
+
+    if (!modem.isGprsConnected())sim800l_init();
     // Restart MQTT connection is required?
     if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
     {

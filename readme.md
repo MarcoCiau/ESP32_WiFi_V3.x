@@ -472,6 +472,12 @@ If you are using a different development board, you can specify one of the envs 
 pio run -e openevse_huzzah32_idf -t upload
 ```
 
+#### 4. Compile & upload ESP32 GSM-MQTT Version
+
+```
+pio run -e openevse_nodemcu-32s_sim800l -t upload
+```
+
 *To enable OTA updates, first upload via serial using the dev environment. This enables OTA enable build flag*
 
 ***

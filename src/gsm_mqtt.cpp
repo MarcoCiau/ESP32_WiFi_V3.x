@@ -36,7 +36,7 @@ const char* topicInit = "GsmClientTest/init";
 
 static long gsmNextMqttReconnectAttempt = 0;
 static unsigned long gsmMqttRestartTime = 0;
-
+static uint8_t connectionAttempsCounter = 0;
 String lastWillMsg = "";
 
 #include <TinyGsmClient.h>
@@ -293,7 +293,11 @@ boolean gsm_mqtt_connect()
 
         mqtt_sub_topic = mqtt_topic + "/divertmode/set";      // MQTT Topic to change divert mode
         mqtt.subscribe((char*)mqtt_sub_topic.c_str());
+
+        connectionAttempsCounter = 0;
     }
+
+    connectionAttempsCounter++;
     return true;
 }
 
@@ -323,7 +327,12 @@ void gsm_mqtt_loop()
 {
     Profile_Start(gsm_mqtt_loop);
 
-    if (!modem.isGprsConnected())sim800l_init();
+    if (!modem.isGprsConnected() || (connectionAttempsCounter > 10))
+    {
+      connectionAttempsCounter = 0;
+      sim800l_init();
+    }
+
     // Restart MQTT connection is required?
     if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
     {

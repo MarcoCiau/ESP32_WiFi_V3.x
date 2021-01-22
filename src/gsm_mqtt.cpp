@@ -32,10 +32,7 @@ const char* mqttPassword = "";//if any
 uint16_t brokerPort = 1883;
 
 /* MQTT Topics */
-const char* topicLed = "GsmClientTest/led";
 const char* topicInit = "GsmClientTest/init";
-const char* topicLedStatus = "GsmClientTest/ledStatus";
-
 
 static long gsmNextMqttReconnectAttempt = 0;
 static unsigned long gsmMqttRestartTime = 0;
@@ -195,12 +192,44 @@ void sim800l_init()
 #endif
 }
 
+void setup_modem()
+{
+#ifdef MODEM_RST
+    // Keep reset high
+    pinMode(MODEM_RST, OUTPUT);
+    digitalWrite(MODEM_RST, HIGH);
+#endif
+
+    pinMode(MODEM_PWRKEY, OUTPUT);
+    pinMode(MODEM_POWER_ON, OUTPUT);
+
+    // Turn on the Modem power first
+    digitalWrite(MODEM_POWER_ON, HIGH);
+
+    // Pull down PWRKEY for more than 1 second according to manual requirements
+    digitalWrite(MODEM_PWRKEY, HIGH);
+    delay(100);
+    digitalWrite(MODEM_PWRKEY, LOW);
+    delay(1000);
+    digitalWrite(MODEM_PWRKEY, HIGH);
+
+    // Initialize the indicator as an output
+    pinMode(LED_GPIO, OUTPUT);
+    digitalWrite(LED_GPIO, LED_OFF);
+
+    DBUGLN("Wait...");
+    // Set GSM module baud rate
+    // TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
+    SIM800L_PORT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
+    delay(3000);
+
+}
+
 void gsm_mqtt_begin()
 {
   DBUGLN("Begin GSM-MQTT...");
-  // Set GSM module baud rate
-  SIM800L_PORT.begin(9600);
-  delay(1000);
+  // Init port baud and GPIO's
+  setup_modem();
   // Init SIM800L Module
   sim800l_init();
   // MQTT Broker setup

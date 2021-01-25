@@ -21,18 +21,15 @@
 #define GSM_PIN ""
 
 // Your GSM Network APN Settings
-const char apn[] = "internet.mvne1.com";
+const char apn[] = "TM";
 const char gprsUser[] = ""; //if any
 const char gprsPass[] = ""; //if any
 
 // MQTT Settings
-const char* broker = "broker.hivemq.com";
+const char* broker = "test.mosquitto.org";
 const char* mqttUser = "";//if any
 const char* mqttPassword = "";//if any
 uint16_t brokerPort = 1883;
-
-/* MQTT Topics */
-const char* topicInit = "GsmClientTest/init";
 
 static long gsmNextMqttReconnectAttempt = 0;
 static unsigned long gsmMqttRestartTime = 0;
@@ -59,6 +56,13 @@ TinyGsmClient client(modem);
 PubSubClient mqtt(client);
 
 uint32_t lastReconnectAttempt = 0;
+
+
+
+bool config_mqtt_managed_enabled() {
+  return true;
+}
+
 
 // -------------------------------------------------------------------
 // MQTT msg Received callback function:
@@ -200,24 +204,11 @@ void setup_modem()
     digitalWrite(MODEM_RST, HIGH);
 #endif
 
-    pinMode(MODEM_PWRKEY, OUTPUT);
-    pinMode(MODEM_POWER_ON, OUTPUT);
-
-    // Turn on the Modem power first
-    digitalWrite(MODEM_POWER_ON, HIGH);
-
-    // Pull down PWRKEY for more than 1 second according to manual requirements
-    digitalWrite(MODEM_PWRKEY, HIGH);
-    delay(100);
-    digitalWrite(MODEM_PWRKEY, LOW);
-    delay(1000);
-    digitalWrite(MODEM_PWRKEY, HIGH);
-
     // Initialize the indicator as an output
     pinMode(LED_GPIO, OUTPUT);
     digitalWrite(LED_GPIO, LED_OFF);
 
-    DBUGLN("Wait...");
+    DBUGLN("Setting up GPRS modem");
     // Set GSM module baud rate
     // TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
     SIM800L_PORT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
@@ -252,6 +243,7 @@ boolean gsm_mqtt_connect()
 
     lastWillMsg = "";
     serializeJson(willDoc, lastWillMsg);
+
     DBUGVAR(lastWillMsg);
 
     boolean connectStatus = mqtt.connect(esp_hostname.c_str(), mqtt_user.c_str(), mqtt_pass.c_str(), mqtt_announce_topic.c_str(), MQTTQOS1, false, lastWillMsg.c_str());
@@ -271,9 +263,11 @@ boolean gsm_mqtt_connect()
         // Once connected, publish an announcement..
         String announce = "";
         serializeJson(doc, announce);
+
+        DBUGLN("Announcing to " + String(mqtt_announce_topic));
+
         DBUGVAR(announce);
         mqtt.publish((char*)mqtt_announce_topic.c_str(), (char*)announce.c_str(), true);
-        mqtt.publish(topicInit, "GsmClientTest started");
 
         // MQTT Topic to subscribe to receive RAPI commands via MQTT
         String mqtt_sub_topic = mqtt_topic + "/rapi/in/#";
@@ -296,6 +290,11 @@ boolean gsm_mqtt_connect()
 
         connectionAttempsCounter = 0;
     }
+    else
+    {
+      DBUGLN("GSM-MQTT is NOT connected.");
+    }
+
 
     connectionAttempsCounter++;
     return true;
@@ -304,7 +303,7 @@ boolean gsm_mqtt_connect()
 void gsm_mqtt_publish(JsonDocument &data)
 {
     Profile_Start(gsm_mqtt_publish);
-    if(!config_mqtt_enabled() || !mqtt.connected()) {
+    if(!config_mqtt_managed_enabled() || !mqtt.connected()) {
         return;
     }
 
@@ -347,7 +346,7 @@ void gsm_mqtt_loop()
         gsmNextMqttReconnectAttempt = 0;
     }
 
-    if (config_mqtt_enabled() && !mqtt.connected())
+    if (config_mqtt_managed_enabled() && !mqtt.connected())
     {
         unsigned long now = millis();
         // try and reconnect every x seconds

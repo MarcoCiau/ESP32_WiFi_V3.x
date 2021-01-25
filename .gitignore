@@ -88,3 +88,8 @@ lib/OpenEVSE
 lib/ESPAL
 lib/MicroDebug
 lib/StreamSpy
+
+# DevEnvironment
+.vs
+Debug
+gui

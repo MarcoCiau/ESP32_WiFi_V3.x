@@ -212,6 +212,26 @@ void setup_modem()
     digitalWrite(MODEM_RST, HIGH);
 #endif
 
+
+    /// <summary>
+    ///  This initialization part required for Lilygo only.
+    /// </summary>
+    pinMode(MODEM_PWRKEY, OUTPUT);
+    pinMode(MODEM_POWER_ON, OUTPUT);
+
+    // Turn on the Modem power first
+    digitalWrite(MODEM_POWER_ON, HIGH);
+
+    // Pull down PWRKEY for more than 1 second according to manual requirements
+    digitalWrite(MODEM_PWRKEY, HIGH);
+    delay(100);
+    digitalWrite(MODEM_PWRKEY, LOW);
+    delay(1000);
+    digitalWrite(MODEM_PWRKEY, HIGH);
+
+    //////////////////////////////////////////////////////
+
+
     // Initialize the indicator as an output
     pinMode(LED_GPIO, OUTPUT);
     digitalWrite(LED_GPIO, LED_OFF);

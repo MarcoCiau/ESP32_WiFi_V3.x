@@ -32,6 +32,7 @@ const char* mqttPassword = "";//if any
 uint16_t brokerPort = 1883;
 
 static long gsmNextMqttReconnectAttempt = 0;
+static unsigned long modemReconnectAttempt  = 0;
 static unsigned long gsmMqttRestartTime = 0;
 static uint8_t connectionAttempsCounter = 0;
 String lastWillMsg = "";
@@ -56,7 +57,7 @@ TinyGsmClient client(modem);
 PubSubClient mqtt(client);
 
 uint32_t lastReconnectAttempt = 0;
-
+bool modemIsAvailable = false;
 
 
 bool config_mqtt_managed_enabled() {
@@ -148,10 +149,17 @@ void sim800l_init()
 {
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
-  DBUGLN("Initializing SIM800L modem...");
-  modem.restart();
+  DBUGLN("Initializing SIM800L modem, wait 10 sec...");
+  modemIsAvailable = modem.restart();
   // modem.init();
 
+  if (!modemIsAvailable)
+  {
+    DBUGLN("Initializing SIM800L modem : ERROR!");
+    return;
+  } 
+
+  DBUGLN("Initializing SIM800L modem : OK!");
   String modemInfo = modem.getModemInfo();
   DBUGLN("Modem Info: " + modemInfo);
 
@@ -226,7 +234,7 @@ void gsm_mqtt_begin()
   // MQTT Broker setup
   mqtt.setServer(broker, brokerPort);
   mqtt.setCallback(gsm_mqtt_callback);
-
+  modemReconnectAttempt = millis();
 }
 
 boolean gsm_mqtt_connect()
@@ -325,12 +333,17 @@ void gsm_mqtt_publish(JsonDocument &data)
 void gsm_mqtt_loop()
 {
     Profile_Start(gsm_mqtt_loop);
-
+    /* Try reconnect the modem each 40 secs */
+    if (!modemIsAvailable && (millis() - modemReconnectAttempt < 40000)) return;
+    modemReconnectAttempt = millis();
     if (!modem.isGprsConnected() || (connectionAttempsCounter > 10))
     {
       connectionAttempsCounter = 0;
       sim800l_init();
     }
+
+    /* If the modem is not connected, don't try to connect it to the mqtt broker!  */
+    if (!modemIsAvailable && !modem.isGprsConnected()) return;
 
     // Restart MQTT connection is required?
     if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
@@ -352,14 +365,14 @@ void gsm_mqtt_loop()
         // try and reconnect every x seconds
         if (millis() - gsmNextMqttReconnectAttempt > 10000L) 
         {
-            DBUGF("Trying GSM_MQTT Connect\n");
+            DBUGF("Trying GSM_MQTT Connect...\n");
             gsmNextMqttReconnectAttempt = now;
             // gsm_mqtt_connect(); // Attempt to reconnect
             if (gsm_mqtt_connect()) {
               gsmNextMqttReconnectAttempt = 0;
             }
         }
-      delay(100);
+      delay(10);
       return;
     }
     mqtt.loop();

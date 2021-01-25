@@ -53,6 +53,10 @@
 
 #include "LedManagerTask.h"
 
+#ifdef ENABLE_SDM_METER
+#include "sdm_meter.h"
+#endif
+
 #include "RapiSender.h"
 
 RapiSender rapiSender(&RAPI_PORT);
@@ -111,6 +115,10 @@ void setup()
   gsm_mqtt_begin();
   enableLoopWDT();
 #endif
+
+#ifdef ENABLE_SDM_METER
+  sdm_meter_begin();
+#endif
   lcd_display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE);
   lcd_display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE);
 
@@ -133,6 +141,9 @@ loop() {
   net_loop();
 #ifdef ENABLE_OTA
   ota_loop();
+#endif
+#ifdef ENABLE_SDM_METER
+  sdm_meter_loop();
 #endif
   rapiSender.loop();
   divert_current_loop();

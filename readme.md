@@ -476,6 +476,8 @@ pio run -e openevse_huzzah32_idf -t upload
 
 ```
 pio run -e openevse_nodemcu-32s_sim800l -t upload
+pio device monitor
+
 ```
 
 *To enable OTA updates, first upload via serial using the dev environment. This enables OTA enable build flag*

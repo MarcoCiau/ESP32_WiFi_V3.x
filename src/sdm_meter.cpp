@@ -46,6 +46,7 @@ void sdm_meter_begin()
 {
     sdm.begin();
     update_read_timer();
+    swSerSDM.println("Hello, I'm SW Serial!"); //just for test SW Serial, after remove it
 }
 
 void sdm_meter_loop()
@@ -55,4 +56,4 @@ void sdm_meter_loop()
     sdm_read_data();
 }
 
-#endif ENABLE_SDM_METER
+#endif 

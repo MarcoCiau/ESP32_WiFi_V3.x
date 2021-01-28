@@ -44,9 +44,9 @@ void update_read_timer()
 
 void sdm_meter_begin()
 {
+    DBUGLN("SDM Meter Init!");
     sdm.begin();
     update_read_timer();
-    swSerSDM.println("Hello, I'm SW Serial!"); //just for test SW Serial, after remove it
 }
 
 void sdm_meter_loop()

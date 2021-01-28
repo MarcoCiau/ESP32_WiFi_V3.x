@@ -490,7 +490,7 @@ pio device monitor
 
 | ESP32 SW Serial | ESP32 HW Serial | MAX485 Side |
 |-----------------|-----------------|-------------|
-| RX - GPIO12     | RX2 - GPIO16    | RO          |
+| RX - GPIO25     | RX2 - GPIO16    | RO          |
 | TX - GPIO13     | TX2 - GPIO17    | DI          |
 | GPIO14          | GPIO14          | DE/RE       |
 | 3.3V            | 3.3V            | 3.3V        |

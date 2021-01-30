@@ -12,7 +12,7 @@ static unsigned long readValuesTimer = 0;
 SoftwareSerial swSerSDM;                                                       
 SDM sdm(swSerSDM, 4800, SDM_DERE, SWSERIAL_8N1, SDM_RX, SDM_TX);
 #else
-SDM sdm(DSDM_PORT, 4800, SDM_DERE, SERIAL_8N1, false);
+SDM sdm(SDM_PORT, 4800, SDM_DERE, SERIAL_8N1, SDM_RX_RO, SDM_TX_DI);
 #endif
 
 void sdm_read_data()

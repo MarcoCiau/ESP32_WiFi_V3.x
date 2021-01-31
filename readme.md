@@ -1,5 +1,10 @@
 # OpenEVSE WiFi Gateway
 
+git submodule update --init
+pio run -t upload
+pio device monitor
+
+
 ![main](docs/main2.png)
 
 The WiFi gateway uses an **ESP32** which communicates with the OpenEVSE controller via serial RAPI API. The web UI is served directly from the ESP32 web server and can be controlled via a connected device on the local network.

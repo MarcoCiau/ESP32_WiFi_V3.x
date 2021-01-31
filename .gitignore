@@ -90,3 +90,4 @@ lib/MicroDebug
 lib/StreamSpy
 /.vs
 /Debug
+src/web_static

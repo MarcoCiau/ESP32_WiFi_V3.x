@@ -92,3 +92,4 @@ lib/StreamSpy
 /Debug
 /src/web_static
 /src/web_static/
+/src/web_static/web_server_static_files.h

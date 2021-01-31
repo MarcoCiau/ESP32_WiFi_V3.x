@@ -1,6 +1,6 @@
 # OpenEVSE WiFi Gateway
 
-git submodule update --init
+git submodule update --init --recursive
 pio run -t upload
 pio device monitor
 

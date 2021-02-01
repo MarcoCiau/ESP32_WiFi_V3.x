@@ -2,8 +2,9 @@
 #include "sdm_meter.h"
 #include "debug.h"
 #include <SDM.h>  
+#ifdef USE_SDM_SOFTWARE_SERIAL
 #include <SoftwareSerial.h>  
-
+#endif
 #define READ_SAMPLE_RATE_MS 10000
 static unsigned long readValuesTimer = 0;
 
@@ -11,7 +12,7 @@ static unsigned long readValuesTimer = 0;
 SoftwareSerial swSerSDM;                                                       
 SDM sdm(swSerSDM, 4800, SDM_DERE, SWSERIAL_8N1, SDM_RX, SDM_TX);
 #else
-SDM sdm(Serial2, 4800, SDM_DERE, SERIAL_8N1, false);
+SDM sdm(SDM_PORT, 4800, SDM_DERE, SERIAL_8N1, SDM_RX_RO, SDM_TX_DI);
 #endif
 
 void sdm_read_data()
@@ -44,9 +45,9 @@ void update_read_timer()
 
 void sdm_meter_begin()
 {
+    DBUGLN("SDM Meter Init!");
     sdm.begin();
     update_read_timer();
-    swSerSDM.println("Hello, I'm SW Serial!"); //just for test SW Serial, after remove it
 }
 
 void sdm_meter_loop()

@@ -225,8 +225,9 @@ void setup_modem()
 #endif
 
 
+    /// *****************************************************
     ///  This following initialization is for Lilygo only
-
+/*
     pinMode(MODEM_PWRKEY, OUTPUT);
     pinMode(MODEM_POWER_ON, OUTPUT);
 
@@ -239,6 +240,8 @@ void setup_modem()
     digitalWrite(MODEM_PWRKEY, LOW);
     delay(1000);
     digitalWrite(MODEM_PWRKEY, HIGH);
+*/
+    /// *****************************************************
 
 
     // Initialize the indicator as an output

@@ -14,6 +14,10 @@
 #include <EEPROM.h>             // Save config settings
 #include <ConfigJson.h>
 
+#ifdef ENABLE_SIM800L_MQTT
+#include "gsm_mqtt.h"
+#endif
+
 #define EEPROM_SIZE     4096
 #define CHECKSUM_SEED    128
 
@@ -177,12 +181,18 @@ void config_changed(String name)
     divertmode_update((config_divert_enabled() && 1 == config_charge_mode()) ? DIVERT_MODE_ECO : DIVERT_MODE_NORMAL);
     if(mqtt_connected() != config_mqtt_enabled()) {
       mqtt_restart();
+      #ifdef ENABLE_SIM800L_MQTT
+      gsm_mqtt_restart();
+      #endif
     }
     if(emoncms_connected != config_emoncms_enabled()) {
       emoncms_updated = true;
     }
   } else if(name.startsWith("mqtt_")) {
     mqtt_restart();
+    #ifdef ENABLE_SIM800L_MQTT
+    gsm_mqtt_restart();
+    #endif
   } else if(name.startsWith("emoncms_")) {
     emoncms_updated = true;
   } else if(name == "divert_enabled" || name == "charge_mode") {

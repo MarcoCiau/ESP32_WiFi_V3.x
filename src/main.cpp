@@ -38,6 +38,9 @@
 #include "input.h"
 #include "emoncms.h"
 #include "mqtt.h"
+#ifdef ENABLE_SIM800L_MQTT
+#include "gsm_mqtt.h"
+#endif
 #include "divert.h"
 #include "ota.h"
 #include "lcd.h"
@@ -49,6 +52,10 @@
 #include "event.h"
 
 #include "LedManagerTask.h"
+
+#ifdef ENABLE_SDM_METER
+#include "sdm_meter.h"
+#endif
 
 #include "RapiSender.h"
 
@@ -103,6 +110,15 @@ void setup()
 
   input_setup();
 
+#ifdef ENABLE_SIM800L_MQTT
+  disableLoopWDT();
+  gsm_mqtt_begin();
+  enableLoopWDT();
+#endif
+
+#ifdef ENABLE_SDM_METER
+  sdm_meter_begin();
+#endif
   lcd_display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE);
   lcd_display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE);
 
@@ -125,6 +141,9 @@ loop() {
   net_loop();
 #ifdef ENABLE_OTA
   ota_loop();
+#endif
+#ifdef ENABLE_SDM_METER
+  sdm_meter_loop();
 #endif
   rapiSender.loop();
   divert_current_loop();
@@ -188,6 +207,12 @@ loop() {
     }
 
     mqtt_loop();
+
+  #ifdef ENABLE_SIM800L_MQTT
+    disableLoopWDT();
+    gsm_mqtt_loop();
+    enableLoopWDT();
+  #endif
 
     // -------------------------------------------------------------------
     // Do these things once every 30 seconds

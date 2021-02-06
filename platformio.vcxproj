@@ -56,6 +56,13 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <None Include="gui\src\home.htm">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="gui\src\term.html" />
+    <None Include="gui\src\wifi_portal.htm">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
     <None Include="platformio.ini" />
   </ItemGroup>
   <ItemGroup>

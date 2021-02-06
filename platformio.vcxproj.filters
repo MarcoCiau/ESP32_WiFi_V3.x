@@ -12,6 +12,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="platformio.ini" />
+    <None Include="gui\src\home.htm">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="gui\src\term.html">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="gui\src\wifi_portal.htm">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src/app_config.cpp">

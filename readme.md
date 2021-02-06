@@ -1,7 +1,11 @@
 # OpenEVSE WiFi Gateway
 
-git submodule update --init --recursive
-git pull origin master
+First install:
+gui/npm install
+
+When changing GUI:
+wipe \PIOworkspace\build
+gui/npm run build
 pio run -t upload
 pio device monitor
 

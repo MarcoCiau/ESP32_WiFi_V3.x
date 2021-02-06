@@ -276,11 +276,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src/web_static/readme.md">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="src/web_static/web_server.assets.js.h">
       <Filter>Header Files</Filter>
     </ClInclude>

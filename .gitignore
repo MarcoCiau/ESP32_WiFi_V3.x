@@ -74,6 +74,7 @@ package-lock.json
 ubuntu-xenial-16.04-cloudimg-console.log
 
 # VSCode stuff
+.vs
 .vscode
 .vscode/browse.vc.db*
 .vscode/c_cpp_properties.json

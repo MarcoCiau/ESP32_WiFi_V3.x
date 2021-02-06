@@ -64,7 +64,17 @@ bool config_mqtt_managed_enabled() {
   return true;
 }
 
+bool checkSIMCardStatus()
+{
+  /* CHECK IF SIM CARD is READY */
+  if (modem.getSimStatus() != 1)
+  {
+    DBUGLN("ERROR: SIM Card unplugged or locked!");
+    return false;
+  }
 
+  return true;
+}
 // -------------------------------------------------------------------
 // MQTT msg Received callback function:
 // Function to be called when msg is received on MQTT subscribed topic
@@ -149,17 +159,19 @@ void sim800l_init()
 {
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
-  DBUGLN("Initializing SIM800L modem, wait 10 sec...");
+  DBUG("Initializing SIM800L modem, wait 10 sec...");
   modemIsAvailable = modem.restart();
   // modem.init();
 
   if (!modemIsAvailable)
   {
-    DBUGLN("Initializing SIM800L modem : ERROR!");
+    checkSIMCardStatus();
+    DBUGLN(" ERROR: SIM800L unavailable or disconnected!");
     return;
   } 
 
-  DBUGLN("Initializing SIM800L modem : OK!");
+
+  DBUGLN("OK: SIM800L ready!");
   String modemInfo = modem.getModemInfo();
   DBUGLN("Modem Info: " + modemInfo);
 
@@ -178,8 +190,9 @@ void sim800l_init()
 
   DBUG("Waiting for network...");
   if (!modem.waitForNetwork()) {
-    DBUGLN(" fail");
-    delay(10000);
+    checkSIMCardStatus();
+    DBUGLN(" network fail");
+    modemIsAvailable = false;
     return;
   }
   DBUGLN(" success");
@@ -193,7 +206,6 @@ void sim800l_init()
     DBUG("Connecting to " + String(apn));
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
       DBUGLN(" fail");
-      delay(10000);
       return;
     }
     DBUGLN(" success");
@@ -211,6 +223,23 @@ void setup_modem()
     pinMode(MODEM_RST, OUTPUT);
     digitalWrite(MODEM_RST, HIGH);
 #endif
+
+
+    ///  This following initialization is for Lilygo only
+
+    pinMode(MODEM_PWRKEY, OUTPUT);
+    pinMode(MODEM_POWER_ON, OUTPUT);
+
+    // Turn on the Modem power first
+    digitalWrite(MODEM_POWER_ON, HIGH);
+
+    // Pull down PWRKEY for more than 1 second according to manual requirements
+    digitalWrite(MODEM_PWRKEY, HIGH);
+    delay(100);
+    digitalWrite(MODEM_PWRKEY, LOW);
+    delay(1000);
+    digitalWrite(MODEM_PWRKEY, HIGH);
+
 
     // Initialize the indicator as an output
     pinMode(LED_GPIO, OUTPUT);
@@ -338,6 +367,7 @@ void gsm_mqtt_loop()
     modemReconnectAttempt = millis();
     if (!modem.isGprsConnected() || (connectionAttempsCounter > 10))
     {
+      checkSIMCardStatus();
       connectionAttempsCounter = 0;
       sim800l_init();
     }

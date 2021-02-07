@@ -494,19 +494,6 @@ pio device monitor
 
 ***
 
-#### 5. ESP32 - MAX485 Wiring
-
-*SoftwareSerial is used for SDM devices by default. If you want to use the Serial2 port (hardware serial),  the USE_SDM_SOFTWARE_SERIAL build-flag must be removed in the platformio.ini file*
-
-| ESP32 SW Serial | ESP32 HW Serial | MAX485 Side |
-|-----------------|-----------------|-------------|
-| RX - GPIO25     | RX2 - GPIO16    | RO          |
-| TX - GPIO13     | TX2 - GPIO17    | DI          |
-| GPIO14          | GPIO14          | DE/RE       |
-| 3.3V            | 3.3V            | 3.3V        |
-| GND             | GND             | GND         |
-
-
 ## Troubleshooting
 
 ### Uploading issues

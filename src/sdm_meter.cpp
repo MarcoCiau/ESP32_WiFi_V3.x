@@ -13,7 +13,7 @@ static float accumulated_kwh = 0;
 static uint32_t accumulated_wh = 0;
 #ifdef USE_SDM_SOFTWARE_SERIAL
 SoftwareSerial swSerSDM;                                                       
-SDM sdm(swSerSDM, 4800, SDM_DERE, SWSERIAL_8N1, SDM_RX, SDM_TX);
+SDM sdm(swSerSDM, 4800, SDM_DERE, SWSERIAL_8N1, SDM_RX_RO, SDM_TX_DI);
 #else
 SDM sdm(SDM_PORT, 4800, SDM_DERE, SERIAL_8N1, SDM_RX_RO, SDM_TX_DI);
 #endif

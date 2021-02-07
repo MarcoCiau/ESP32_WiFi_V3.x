@@ -38,17 +38,20 @@ void set_accumulated_kwh(float kwh)
 
 void sdm_read_data()
 {
+    DBUG("Phase1 voltage:   ");
+    DBUGLN(sdm.readVal(SDM_PHASE_1_VOLTAGE), 2);                            //display voltage
+
     accumulated_kwh = sdm.readVal(SDM_TOTAL_ACTIVE_ENERGY);
     accumulated_wh = accumulated_kwh * 1000.00;
     DBUG("Total Active Energy:   ");
     DBUG(accumulated_kwh, 2);                             
-    DBUG("KWH, ");
+    DBUG("kWh / ");
     DBUG(accumulated_wh);                            
-    DBUGLN("WH, ");
+    DBUGLN("Wh");
 
     if (accumulated_kwh == NAN) return;
 
-    DBUG(" RAPI -> Set accumulated Wh : ");
+    DBUGLN("Setting accumulated Wh..");
     set_accumulated_kwh(accumulated_kwh); 
 }
 

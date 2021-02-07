@@ -28,6 +28,7 @@ void debug_setup()
   DEBUG_PORT.begin(115200);
   SerialDebug.begin(2048);
 
-  RAPI_PORT.begin(115200);
+  
+  RAPI_PORT.begin(115200, SERIAL_8N1, 19, 22);
   SerialEvse.begin(2048);
 }

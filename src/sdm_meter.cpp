@@ -9,8 +9,12 @@
 
 #define READ_SAMPLE_RATE_MS 10000
 static unsigned long readValuesTimer = 0;
+
+static float voltage_phase1 = 0;
+
 static float accumulated_kwh = 0;
 static uint32_t accumulated_wh = 0;
+
 #ifdef USE_SDM_SOFTWARE_SERIAL
 SoftwareSerial swSerSDM;                                                       
 SDM sdm(swSerSDM, 4800, SDM_DERE, SWSERIAL_8N1, SDM_RX_RO, SDM_TX_DI);
@@ -25,8 +29,8 @@ void set_accumulated_wh(uint32_t wh)
   
   rapiSender.sendCmd(command, [](int ret)
   {
-    if (ret == RAPI_RESPONSE_OK)DBUGLN("SUCCES!");
-    else DBUGLN("ERROR!");
+    if (ret == RAPI_RESPONSE_OK)DBUGLN("set_accumulated_wh write success.");
+    else DBUGLN("set_accumulated_wh write ERROR.");
   });
 
 }
@@ -38,10 +42,16 @@ void set_accumulated_kwh(float kwh)
 
 void sdm_read_data()
 {
-    DBUG("Phase1 voltage:   ");
-    DBUGLN(sdm.readVal(SDM_PHASE_1_VOLTAGE), 2);                            //display voltage
 
+    voltage_phase1 = sdm.readVal(SDM_PHASE_1_VOLTAGE);
     accumulated_kwh = sdm.readVal(SDM_TOTAL_ACTIVE_ENERGY);
+
+    if (isnan(voltage_phase1)) return;
+    if (isnan(accumulated_kwh)) return;
+
+    DBUG("Phase1 voltage:   ");
+    DBUGLN(voltage_phase1, 2);                            //display voltage
+
     accumulated_wh = accumulated_kwh * 1000.00;
     DBUG("Total Active Energy:   ");
     DBUG(accumulated_kwh, 2);                             
@@ -49,9 +59,6 @@ void sdm_read_data()
     DBUG(accumulated_wh);                            
     DBUGLN("Wh");
 
-    if (accumulated_kwh == NAN) return;
-
-    DBUGLN("Setting accumulated Wh..");
     set_accumulated_kwh(accumulated_kwh); 
 }
 

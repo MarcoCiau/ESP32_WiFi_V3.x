@@ -365,8 +365,8 @@ void gsm_mqtt_publish(JsonDocument &data)
 void gsm_mqtt_loop()
 {
     Profile_Start(gsm_mqtt_loop);
-    /* Try reconnect the modem each 40 secs */
-    if (!modemIsAvailable && (millis() - modemReconnectAttempt < 40000)) return;
+    /* Try reconnect the modem once each hour */
+    if (!modemIsAvailable && (millis() - modemReconnectAttempt < 60*60*1000)) return;
     modemReconnectAttempt = millis();
     if (!modem.isGprsConnected() || (connectionAttempsCounter > 10))
     {

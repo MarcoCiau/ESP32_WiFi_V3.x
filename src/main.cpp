@@ -38,9 +38,6 @@
 #include "input.h"
 #include "emoncms.h"
 #include "mqtt.h"
-#ifdef ENABLE_SIM800L_MQTT
-#include "gsm_mqtt.h"
-#endif
 #include "divert.h"
 #include "ota.h"
 #include "lcd.h"
@@ -53,9 +50,19 @@
 
 #include "LedManagerTask.h"
 
+
+#ifdef ENABLE_SIM800L_MQTT
+#include "gsm_mqtt.h"
+#endif
+
 #ifdef ENABLE_SDM_METER
 #include "sdm_meter.h"
 #endif
+
+
+#include "MatrixDisplay\MatrixDisplay.h"
+
+
 
 #include "RapiSender.h"
 
@@ -277,6 +284,14 @@ void hardware_setup()
   // https://forums.adafruit.com/viewtopic.php?f=57&t=153553&p=759890&hilit=esp32+serial+pullup#p769168
   pinMode(SERIAL_RX_PULLUP_PIN, INPUT_PULLUP);
 #endif
+
+
+
+  initMatrix();
+
+
+  updateMatrix();
+
 
   enableLoopWDT();
 }

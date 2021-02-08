@@ -78,32 +78,7 @@ LedManagerTask::LedManagerTask() :
 
 void LedManagerTask::setup()
 {
-#if defined(NEO_PIXEL_PIN) && defined(NEO_PIXEL_LENGTH)
-  DBUGF("Initialising NeoPixels");
-  strip.begin();
-  setAllRGB(0, 0, 0);
-#endif
-
-#if defined(RED_LED) && defined(GREEN_LED) && defined(BLUE_LED)
-  DBUGF("Initialising RGB LEDs, %d, %d, %d", RED_LED, GREEN_LED, BLUE_LED);
-  pinMode(RED_LED, OUTPUT);
-  digitalWrite(RED_LED, LOW);
-  pinMode(GREEN_LED, OUTPUT);
-  digitalWrite(GREEN_LED, LOW);
-  pinMode(BLUE_LED, OUTPUT);
-  digitalWrite(BLUE_LED, LOW);
-#endif
-
-#ifdef WIFI_LED
-  DBUGF("Configuring pin %d for LED", WIFI_LED);
-  pinMode(WIFI_LED, OUTPUT);
-  digitalWrite(WIFI_LED, !WIFI_LED_ON_STATE);
-#endif
-
-#if defined(WIFI_BUTTON) && !defined(WIFI_BUTTON_SHARE_LED)
-  DBUGF("Configuring pin %d for Button", WIFI_BUTTON);
-  pinMode(WIFI_BUTTON, WIFI_BUTTON_PRESSED_PIN_MODE);
-#endif
+  DEBUG.printf("Ledmanager initialized.\n");
 }
 
 unsigned long LedManagerTask::loop(MicroTasks::WakeReason reason)

@@ -200,6 +200,7 @@ loop() {
             ledManager.setEvseState(evse_state);
           });
         } else {
+          ledManager.setEvseState(99);  // Hacked state. Means critical error!
           DBUGLN("OpenEVSE not responding or not connected");
         }
       });
@@ -286,11 +287,7 @@ void hardware_setup()
 #endif
 
 
-
   initMatrix();
-
-
-  updateMatrix();
 
 
   enableLoopWDT();

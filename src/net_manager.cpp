@@ -117,9 +117,10 @@ startClient()
   WiFi.hostname(esp_hostname.c_str());
 #endif // !ESP32
 
+  ledManager.setWifiMode(true, false);      // Attempting to connect to AP
+
   WiFi.begin(esid.c_str(), epass.c_str());
 
-  ledManager.setWifiMode(true, false);
 }
 
 static void net_wifi_start()
@@ -421,48 +422,6 @@ net_loop()
   //bool isAp = net_wifi_mode_is_ap();
   bool isApOnly = net_wifi_mode_is_ap_only();
 
-
-  int button = ledManager.getButtonPressed();
-
-  //DBUGF("%lu %d %d", millis() - wifiButtonTimeOut, button, wifiButtonState);
-  if(wifiButtonState != button)
-  {
-    wifiButtonState = button;
-    if(WIFI_BUTTON_PRESSED_STATE == button) {
-      DBUGF("Button pressed");
-      wifiButtonTimeOut = millis();
-      apMessage = false;
-    } else {
-      DBUGF("Button released");
-      if(millis() > wifiButtonTimeOut + WIFI_BUTTON_AP_TIMEOUT) {
-        startAP();
-      } else {
-        display_state();
-      }
-    }
-  }
-
-  if(WIFI_BUTTON_PRESSED_STATE == wifiButtonState && millis() > wifiButtonTimeOut + WIFI_BUTTON_FACTORY_RESET_TIMEOUT)
-  {
-    DBUGLN("*** Factory Reset ***");
-
-    lcd_display(F("Factory Reset"), 0, 0, 0, LCD_CLEAR_LINE | LCD_DISPLAY_NOW);
-    lcd_display(F(""), 0, 1, 10 * 1000, LCD_CLEAR_LINE | LCD_DISPLAY_NOW);
-
-    delay(1000);
-
-    config_reset();
-    ESPAL.eraseConfig();
-
-    delay(50);
-    ESPAL.reset();
-  }
-  else if(false == apMessage && LOW == wifiButtonState && millis() > wifiButtonTimeOut + WIFI_BUTTON_AP_TIMEOUT)
-  {
-    lcd_display(F("Access Point"), 0, 0, 0, LCD_CLEAR_LINE | LCD_DISPLAY_NOW);
-    lcd_display(F(""), 0, 1, 10 * 1000, LCD_CLEAR_LINE | LCD_DISPLAY_NOW);
-    apMessage = true;
-  }
 
   // Manage state while connecting
   if(isClientOnly && !WiFi.isConnected())

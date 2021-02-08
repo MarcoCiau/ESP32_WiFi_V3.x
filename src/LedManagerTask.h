@@ -28,7 +28,9 @@ enum LedState
   LedState_WiFi_Access_Point_Waiting,
   LedState_WiFi_Access_Point_Connected,
   LedState_WiFi_Client_Connecting,
-  LedState_WiFi_Client_Connected
+  LedState_WiFi_Client_Connected,
+  LedState_WiFi_Client_ConnectedConfirmed,
+  LedState_CriticalError
 };
 
 class LedManagerTask : public MicroTasks::Task
@@ -38,7 +40,6 @@ class LedManagerTask : public MicroTasks::Task
     uint8_t evseState;
     bool wifiClient;
     bool wifiConnected;
-
     bool flashState;
 
 #if RGB_LED

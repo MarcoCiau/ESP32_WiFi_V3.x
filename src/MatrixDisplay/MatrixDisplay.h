@@ -1,8 +1,9 @@
-extern int anim_delay_wifi_frames;
-extern int anim_delay_wifi_connecting;
 
 extern bool initMatrix();
-extern bool updateMatrix();
-extern bool updateMatrix2();
-extern bool updateMatrix3();
+
+extern int Critical_Anim(int animation);
+extern int Critical_Anim_Count;
+
+extern int Wifi_Confirmed_Anim(int animation);
+extern int Wifi_Confirmed_Anim_Count;
 

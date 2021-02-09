@@ -23,6 +23,10 @@
 
 #define TEST_LED_TIME     500
 
+uint animationFrames;
+uint animationDelay;
+uint animationCurrentFrame;
+
 
 
 LedManagerTask::LedManagerTask() :
@@ -39,29 +43,6 @@ void LedManagerTask::setup()
 
 unsigned long LedManagerTask::loop(MicroTasks::WakeReason reason)
 {
-  DBUG("LED manager woke: ");
-  DBUG(WakeReason_Scheduled == reason ? "WakeReason_Scheduled" :
-       WakeReason_Event == reason ? "WakeReason_Event" :
-       WakeReason_Message == reason ? "WakeReason_Message" :
-       WakeReason_Manual == reason ? "WakeReason_Manual" :
-       "UNKNOWN");
-  DBUG(" ");
-  DBUG(LedState_Off == state ? "LedState_Off" :
-         LedState_Test_Red == state ? "LedState_Test_Red" :
-         LedState_Test_Green == state ? "LedState_Test_Green" :
-         LedState_Test_Blue == state ? "LedState_Test_Blue" :
-         LedState_Unknown == state ? "LedState_Unknown" :
-         LedState_Ready == state ? "LedState_Ready" :
-         LedState_Connected == state ? "LedState_Connected" :
-         LedState_Charging == state ? "LedState_Charging" :
-         LedState_Sleeping == state ? "LedState_Sleeping" :
-         LedState_Warning == state ? "LedState_Warning" :
-         LedState_Error == state ? "LedState_Error" :
-         LedState_WiFi_Access_Point_Waiting == state ? "LedState_WiFi_Access_Point_Waiting" :
-         LedState_WiFi_Access_Point_Connected == state ? "LedState_WiFi_Access_Point_Connected" :
-         LedState_WiFi_Client_Connected == state ? "LedState_WiFi_Client_Connected" :
-         "UNKNOWN");
-
   switch(state)
   {
     case LedState_Off:
@@ -86,61 +67,77 @@ unsigned long LedManagerTask::loop(MicroTasks::WakeReason reason)
 
     case LedState_Unknown:
       //      setAllRGB(255, 255, 255);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Ready:
       //      setAllRGB(0, 255, 0);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Connected:
       //      setAllRGB(255, 255, 0);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Charging:
       //      setAllRGB(0, 255, 255);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Sleeping:
       //      setAllRGB(255, 0, 255);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Warning:
       //      setAllRGB(255, 255, 0);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_Error:
       //      setAllRGB(255, 0, 0);
-      return MicroTask.Infinate;
+      return animationDelay;
 
     case LedState_CriticalError:
-      updateMatrix3();
-      return MicroTask.Infinate;
+      animationDelay = Critical_Anim(animationCurrentFrame);
+
+      animationCurrentFrame++;
+      if (animationCurrentFrame >= Critical_Anim_Count)
+        animationCurrentFrame = 0;
+
+      return animationDelay;
 
     case LedState_WiFi_Access_Point_Waiting:
       //      setAllRGB(flashState ? 255 : 0, 
 //                flashState ? 255 : 0,
 //                0);
       flashState = !flashState;
-      return CONNECTING_FLASH_TIME;
+      return animationDelay;
 
     case LedState_WiFi_Access_Point_Connected:
 //      setAllRGB(0, flashState ? 255 : 0, 0);
       flashState = !flashState;
-      return CONNECTED_FLASH_TIME;
+      return animationDelay;
 
     case LedState_WiFi_Client_ConnectedConfirmed:
       DEBUG.printf("LedManager CONNECTION CONFIRMED state\n");
-      updateMatrix2();
-      return MicroTask.Infinate;
+
+      animationDelay = Wifi_Confirmed_Anim(animationCurrentFrame);
+
+      animationCurrentFrame++;
+      if (animationCurrentFrame >= Wifi_Confirmed_Anim_Count)
+        animationCurrentFrame = 0;
+
+      return animationDelay;
 
     case LedState_WiFi_Client_Connecting:
       DEBUG.printf("LedManager CONNECTING state\n");
-      updateMatrix();
-      return MicroTask.Infinate;
+
+      animationCurrentFrame++;
+      if (animationCurrentFrame >= animationFrames)
+        animationCurrentFrame = 0;
+
+
+      return animationDelay;
 
     case LedState_WiFi_Client_Connected:
       DEBUG.printf("LedManager CONNECTED state\n");
-      return MicroTask.Infinate;
+      return animationDelay;
 
   }
 
@@ -223,17 +220,17 @@ int LedManagerTask::getPriority(LedState priorityState)
 
 void LedManagerTask::setNewState(bool wake)
 {
-  DEBUG.printf("LedManager setNewState\n");
-  DEBUG.printf("wake: %d \n", wake);
+//  DEBUG.printf("LedManager setNewState\n");
+//  DEBUG.printf("wake: %d \n", wake);
 
-  DEBUG.printf("state was: %d \n", state);
+//  DEBUG.printf("state was: %d \n", state);
 
 
   LedState newState = state < LedState_Off ? state : LedState_Off;
   int priority = getPriority(newState);
 
-  DEBUG.printf("newState: %d \n", newState);
-  DEBUG.printf("newState priority: %d \n", priority);
+//  DEBUG.printf("newState: %d \n", newState);
+//  DEBUG.printf("newState priority: %d \n", priority);
 
 
   LedState evseState = ledStateFromEvseState(this->evseState);
@@ -243,11 +240,11 @@ void LedManagerTask::setNewState(bool wake)
     priority = evsePriority;
   }
 
-  DEBUG.printf("evseState: %d \n", evseState);
-  DEBUG.printf("evsePriority priority: %d \n", evsePriority);
+//  DEBUG.printf("evseState: %d \n", evseState);
+//  DEBUG.printf("evsePriority priority: %d \n", evsePriority);
 
-  DEBUG.printf("newState: %d \n", newState);
-  DEBUG.printf("newState priority: %d \n", priority);
+//  DEBUG.printf("newState: %d \n", newState);
+//  DEBUG.printf("newState priority: %d \n", priority);
 
 
 
@@ -274,11 +271,11 @@ void LedManagerTask::setNewState(bool wake)
     priority = wifiPriority;
   }
 
-  DEBUG.printf("wifiState: %d \n", wifiState);
-  DEBUG.printf("wifiPriority priority: %d \n", wifiPriority);
+//  DEBUG.printf("wifiState: %d \n", wifiState);
+//  DEBUG.printf("wifiPriority priority: %d \n", wifiPriority);
 
-  DEBUG.printf("newState: %d \n", newState);
-  DEBUG.printf("newState priority: %d \n", priority);
+//  DEBUG.printf("newState: %d \n", newState);
+//  DEBUG.printf("newState priority: %d \n", priority);
 
 
 
@@ -287,7 +284,15 @@ void LedManagerTask::setNewState(bool wake)
     if ((state == LedState_WiFi_Client_Connecting) && (newState == LedState_WiFi_Client_Connected))
       newState = LedState_WiFi_Client_ConnectedConfirmed;
 
+
     state = newState;
+
+    DEBUG.printf("New state: %d \n", state);
+
+
+    animationCurrentFrame = 0;
+    animationFrames = 2;
+    animationDelay = 250;
 
     if(wake) {
       DEBUG.printf("Wakestate: %d \n", state);

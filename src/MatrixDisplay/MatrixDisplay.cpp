@@ -1,43 +1,9 @@
 #include "MatrixDisplay\LedController.hpp"
 #include "MatrixDisplay\MatrixDisplay.h"
+#include "MatrixDisplay\MatrixDisplay_Anim_Critical.h"
+#include "MatrixDisplay\MatrixDisplay_Anim_Wifi.h"
 
 LedController<1, 1> lc = LedController<1, 1>();
-
-int anim_delay_wifi_frames = 2;
-int anim_delay_wifi_connecting = 500;
-
-ByteBlock wifi01 = {
-  B00000000,
-  B01000010,
-  B00000000,
-  B00000000,
-  B00111000,
-  B00010000,
-  B00000000,
-  B00000000,
-};
-
-ByteBlock wifi02 = {
-  B00000000,
-  B01100110,
-  B01100110,
-  B00000000,
-  B00000000,
-  B01000010,
-  B00111100,
-  B00000000
-};
-
-ByteBlock wifi03 = {
-  B00000000,
-  B01100110,
-  B01100110,
-  B00000000,
-  B00000000,
-  B00111100,
-  B01000010,
-  B00000000
-};
 
 
 bool initMatrix()
@@ -49,23 +15,19 @@ bool initMatrix()
   return true;
 }
 
-bool updateMatrix()
-{
-  lc.displayOnSegment(0, wifi01);
 
-  return true;
+int Critical_Anim(int animation)
+{
+  lc.displayOnSegment(0, *Critical_Anim_Pointers[animation]);
+  lc.setIntensity(Critical_Anim_Brightness[animation]);
+  return Critical_Anim_Delays[animation];
 }
 
-bool updateMatrix2()
-{
-  lc.displayOnSegment(0, wifi02);
 
-  return true;
+int Wifi_Confirmed_Anim(int animation)
+{
+  lc.displayOnSegment(0, *Wifi_Confirmed_Anim_Pointers[animation]);
+  lc.setIntensity(Wifi_Confirmed_Anim_Brightness[animation]);
+  return Wifi_Confirmed_Anim_Delays[animation];
 }
 
-bool updateMatrix3()
-{
-  lc.displayOnSegment(0, wifi03);
-
-  return true;
-}

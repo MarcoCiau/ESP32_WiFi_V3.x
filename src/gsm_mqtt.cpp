@@ -38,6 +38,7 @@ static unsigned long gsmMqttRestartTime = 0;
 static uint8_t connectionAttempsCounter = 0;
 String lastWillMsg = "";
 
+#include <WiFi.h>
 #include <TinyGsmClient.h>
 #include <PubSubClient.h>
 
@@ -53,13 +54,59 @@ String lastWillMsg = "";
 TinyGsm modem(SIM800L_PORT);
 #endif
 
+/*  Nofos Network Clients Profiles */
+enum NOFOS_NETWORK_PROFILE{ONLY_GSM = 1, GSM_WITH_FALLBACK, ONLY_WIFI, WIFI_WITH_FALLBACK};
+uint8_t nofos_net_profile = ONLY_WIFI;
 
-TinyGsmClient client(modem);
-PubSubClient mqtt(client);
+/* Nofos Network Clients : GSM & WiFi */
+TinyGsmClient nofos_gsm_client(modem);
+WiFiClient nofos_wifi_client;
+
+/* MQTT Client */
+PubSubClient mqtt;
 
 uint32_t lastReconnectAttempt = 0;
 bool modemIsAvailable = false;
 
+
+
+uint8_t load_nofos_net_profile() {
+   //TODO: load value from EEPROM
+   return ONLY_WIFI;
+}
+
+bool save_net_profile(uint8_t profile)
+{
+  //TODO: save new network profile to the EEPROM
+  return true;
+}
+
+void init_nofos_network() {
+
+  nofos_net_profile = load_nofos_net_profile();
+
+  switch (nofos_net_profile)
+  {
+    case ONLY_GSM:
+    case GSM_WITH_FALLBACK:
+      /* Set MQTT Network Client */
+      mqtt.setClient(nofos_gsm_client);
+      // Init port baud and GPIO's
+      setup_modem();
+      // Init SIM800L Module
+      sim800l_init();
+    break;
+    case ONLY_WIFI:
+    case WIFI_WITH_FALLBACK:
+      /* Set MQTT Network Client */
+      mqtt.setClient(nofos_wifi_client);
+      break;
+    default:
+      /* Set MQTT Network Client */
+      mqtt.setClient(nofos_wifi_client);
+      break;
+  }
+}
 
 bool config_mqtt_managed_enabled() {
   return true;
@@ -76,6 +123,12 @@ bool checkSIMCardStatus()
 
   return true;
 }
+
+// void nofos_net_fallback_handler()
+// {
+
+// }
+
 // -------------------------------------------------------------------
 // MQTT msg Received callback function:
 // Function to be called when msg is received on MQTT subscribed topic
@@ -267,10 +320,12 @@ void gsm_mqtt_begin()
 {
   DBUGLN("Begin GSM-MQTT...");
   // Init port baud and GPIO's
-  setup_modem();
+  // setup_modem();
   // Init SIM800L Module
-  sim800l_init();
+  // sim800l_init();
   // MQTT Broker setup
+  // nofos_net_client = &nofos_wifi_client;
+  init_nofos_network();
   mqtt.setServer(broker, brokerPort);
   mqtt.setCallback(gsm_mqtt_callback);
   modemReconnectAttempt = millis();
@@ -340,6 +395,7 @@ boolean gsm_mqtt_connect()
     else
     {
       DBUGLN("GSM-MQTT is NOT connected.");
+      return false;
     }
 
 
@@ -367,6 +423,29 @@ void gsm_mqtt_publish(JsonDocument &data)
   Profile_End(gsm_mqtt_publish, 5);
 
 
+}
+
+boolean nofos_gsm_fallback_hdler() {
+/* GSM Module Reconnection Logic :
+  1. If the GSM is not available or disconnected, try to connect every 60 secs
+  2. In ONLY_GSM profile, After 10 connection attemps, we should init and restart the gsm module connection
+  3. In GSM_WITH_FALLBACK profile, if there is GSM connections troubles,  we will try reconnect to it   
+  3. In GSM_WITH_FALLBACK profile, after 10 GSM connection attemps, we WILL switch to WiFi fallback
+  4. In GSM_WITH_FALLBACK profile, if there is WiFi connections troubles,  we will try reconnect to it  
+  5. In GSM_WITH_FALLBACK profile, after 10 WiFi Connection attemps, we WILL back to GSM  
+*/
+}
+
+boolean nofos_wifi_fallback_hdler()
+{
+/* WiFi Reconnection Logic :
+  1. Due the WiFi Connection attemps is handled by the OpenEVSE core, we will get the wifi status each 10 secs
+  2. In ONLY_WIFI profile, we will ONLY get the wifi status from the OpenEVESE core each 10 secs
+  3. In WIFI_WITH_FALLBACK profile, if there is WiFi connections troubles,  we will try reconnect to it   
+  3. In WIFI_WITH_FALLBACK profile, after 10 WiFi connection attemps, we WILL switch to GSM fallback
+  4. In WIFI_WITH_FALLBACK profile, if there is GSM connections troubles,  we will try reconnect to it  
+  5. In WIFI_WITH_FALLBACK profile, after 10 GSM Connection attemps, we WILL back to WIFI  
+*/
 }
 
 void gsm_mqtt_loop()

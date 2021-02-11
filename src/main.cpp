@@ -28,7 +28,6 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>               // local OTA update from Arduino IDE
 #include <MongooseCore.h>
-#include <MicroTasks.h>
 
 #include "emonesp.h"
 #include "app_config.h"
@@ -78,6 +77,7 @@ static uint32_t last_mem = 0;
 
 static void hardware_setup();
 
+
 // -------------------------------------------------------------------
 // SETUP
 // -------------------------------------------------------------------
@@ -96,7 +96,9 @@ void setup()
   config_load_settings();
   DBUGF("After config_load_settings: %d", ESPAL.getFreeHeap());
 
-  MicroTask.startTask(ledManager);
+
+  initMatrix();
+
 
   // Initialise the WiFi
   net_setup();
@@ -155,7 +157,6 @@ loop() {
   rapiSender.loop();
   divert_current_loop();
   time_loop();
-  MicroTask.update();
 
   if(OpenEVSE.isConnected())
   {
@@ -287,8 +288,7 @@ void hardware_setup()
 #endif
 
 
-  initMatrix();
-
-
   enableLoopWDT();
 }
+
+

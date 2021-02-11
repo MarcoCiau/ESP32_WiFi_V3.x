@@ -6,6 +6,7 @@
 #include "input.h"
 #include "espal.h"
 #include "net_manager.h"
+#include "LedManagerTask.h"
 
 #include "openevse.h"
 
@@ -157,6 +158,9 @@ void gsm_mqtt_callback(char* topic, byte* payload, unsigned int len)
 
 void sim800l_init()
 {
+
+  ledManager.setCellMode(true, false);
+
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
   DBUG("Initializing SIM800L modem, wait 10 sec...");
@@ -214,6 +218,9 @@ void sim800l_init()
     DBUGLN("GPRS connected");
   }
 #endif
+
+  ledManager.setCellMode(true, true);
+
 }
 
 void setup_modem()

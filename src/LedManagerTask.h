@@ -30,7 +30,10 @@ enum LedState
   LedState_WiFi_Client_Connecting,
   LedState_WiFi_Client_Connected,
   LedState_WiFi_Client_ConnectedConfirmed,
-  LedState_CriticalError
+  LedState_CriticalError,
+  LedState_Cell_Client_Connecting,
+  LedState_Cell_Client_Connected,
+  LedState_Cell_Client_ConnectedConfirmed
 };
 
 class LedManagerTask : public MicroTasks::Task
@@ -40,6 +43,9 @@ class LedManagerTask : public MicroTasks::Task
     uint8_t evseState;
     bool wifiClient;
     bool wifiConnected;
+    bool cellActive;
+    bool cellConnected;
+
     bool flashState;
 
 #if RGB_LED
@@ -62,6 +68,7 @@ class LedManagerTask : public MicroTasks::Task
 
     void setEvseState(uint8_t state);
     void setWifiMode(bool client, bool connected);
+    void setCellMode(bool active, bool connected);
 
     void test();
     void clear();

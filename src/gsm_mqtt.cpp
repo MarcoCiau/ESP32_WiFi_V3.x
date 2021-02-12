@@ -7,25 +7,19 @@
 #include "espal.h"
 #include "net_manager.h"
 #include "LedManagerTask.h"
-
 #include "openevse.h"
-
 #include <Arduino.h>
 #include <ArduinoJson.h>
-
+// Set SIM800L as GSM Modem 
 #define TINY_GSM_MODEM_SIM800
-
 // Define how you're planning to connect to the internet
 #define TINY_GSM_USE_GPRS true
-
 // set GSM PIN, if any
 #define GSM_PIN ""
-
 // Your GSM Network APN Settings
 const char apn[] = "TM";
 const char gprsUser[] = ""; //if any
 const char gprsPass[] = ""; //if any
-
 // MQTT Settings
 const char* broker = "test.mosquitto.org";
 const char* mqttUser = "";//if any
@@ -33,9 +27,7 @@ const char* mqttPassword = "";//if any
 uint16_t brokerPort = 1883;
 
 static long gsmNextMqttReconnectAttempt = 0;
-static unsigned long modemReconnectAttempt  = 0;
 static unsigned long gsmMqttRestartTime = 0;
-static uint8_t connectionAttempsCounter = 0;
 String lastWillMsg = "";
 
 #include <WiFi.h>
@@ -76,14 +68,8 @@ bool checkSIMCardStatus()
     DBUGLN("ERROR: SIM Card unplugged or locked!");
     return false;
   }
-
   return true;
 }
-
-// void nofos_net_fallback_handler()
-// {
-
-// }
 
 // -------------------------------------------------------------------
 // MQTT msg Received callback function:
@@ -270,29 +256,26 @@ void setup_modem()
 
 }
 
-void gsm_mqtt_begin()
+/* NOFOS MQTT API*/
+
+void nofos_mqtt_begin()
 {
   DBUGLN("Begin GSM-MQTT...");
   mqtt.setServer(broker, brokerPort);
   mqtt.setCallback(gsm_mqtt_callback);
-  modemReconnectAttempt = millis();
 }
 
-boolean gsm_mqtt_connect()
+boolean nofos_mqtt_connect()
 {
-
     DBUGF("GSM-MQTT Connecting to... %s", broker);
-
     // Build the last will message
     DynamicJsonDocument willDoc(JSON_OBJECT_SIZE(3) + 60);
-
     willDoc["state"] = "disconnected";
     willDoc["id"] = ESPAL.getLongId();
     willDoc["name"] = esp_hostname;
 
     lastWillMsg = "";
     serializeJson(willDoc, lastWillMsg);
-
     DBUGVAR(lastWillMsg);
 
     boolean connectStatus = mqtt.connect(esp_hostname.c_str(), mqtt_user.c_str(), mqtt_pass.c_str(), mqtt_announce_topic.c_str(), MQTTQOS1, false, lastWillMsg.c_str());
@@ -300,57 +283,76 @@ boolean gsm_mqtt_connect()
     if (connectStatus)
     {
         DBUGLN("GSM-MQTT Connected");
-
         DynamicJsonDocument doc(JSON_OBJECT_SIZE(5) + 200);
-
         doc["state"] = "connected";
         doc["id"] = ESPAL.getLongId();
         doc["name"] = esp_hostname;
         doc["mqtt"] = mqtt_topic;
         doc["http"] = "http://"+ipaddress+"/";
-
         // Once connected, publish an announcement..
         String announce = "";
         serializeJson(doc, announce);
-
         DBUGLN("Announcing to " + String(mqtt_announce_topic));
-
         DBUGVAR(announce);
         mqtt.publish((char*)mqtt_announce_topic.c_str(), (char*)announce.c_str(), true);
-
         // MQTT Topic to subscribe to receive RAPI commands via MQTT
         String mqtt_sub_topic = mqtt_topic + "/rapi/in/#";
-
         // e.g to set current to 13A: <base-topic>/rapi/in/$SC 13
         mqtt.subscribe((char*)mqtt_sub_topic.c_str());
 
         if (config_divert_enabled())
         {
             if (mqtt_solar!="") mqtt.subscribe((char*)mqtt_solar.c_str());
-            
-
             if (mqtt_grid_ie!="") mqtt.subscribe((char*)mqtt_grid_ie.c_str());
         }
-
         if (mqtt_vrms!="") mqtt.subscribe((char*)mqtt_vrms.c_str());
-
         mqtt_sub_topic = mqtt_topic + "/divertmode/set";      // MQTT Topic to change divert mode
         mqtt.subscribe((char*)mqtt_sub_topic.c_str());
-
-        connectionAttempsCounter = 0;
     }
     else
     {
       DBUGLN("GSM-MQTT is NOT connected.");
       return false;
     }
-    connectionAttempsCounter++;
     return true;
 }
 
-void gsm_mqtt_publish(JsonDocument &data)
+void nofos_mqtt_loop()
 {
-    Profile_Start(gsm_mqtt_publish);
+  Profile_Start(nofos_mqtt_loop);
+  // Restart MQTT connection is required?
+  if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
+  {
+      gsmMqttRestartTime = 0;
+      if (mqtt.connected())
+      {
+          DBUGF("Disconnecting GSM_MQTT");
+          mqtt.disconnect();
+      }
+      gsmNextMqttReconnectAttempt = 0;
+  }
+
+  /* Reconnect MQTT Client*/
+  if (config_mqtt_managed_enabled() && !mqtt.connected())
+  {
+      unsigned long now = millis();
+      // try and reconnect every x seconds
+      if (millis() - gsmNextMqttReconnectAttempt > 10000L) 
+      {
+          DBUGF("Trying GSM_MQTT Connect...\n");
+          gsmNextMqttReconnectAttempt = now;
+          nofos_mqtt_connect();
+      }
+    delay(10);
+    return;
+  }
+  mqtt.loop();
+  Profile_End(nofos_mqtt_loop, 5);
+}
+
+void nofos_mqtt_publish(JsonDocument &data)
+{
+    Profile_Start(nofos_mqtt_publish);
     if(!config_mqtt_managed_enabled() || !mqtt.connected()) {
         return;
     }
@@ -365,82 +367,44 @@ void gsm_mqtt_publish(JsonDocument &data)
         topic = mqtt_topic + "/";
     }
 
-  Profile_End(gsm_mqtt_publish, 5);
-
-
+  Profile_End(nofos_mqtt_publish, 5);
 }
 
-
-void gsm_mqtt_loop()
-{
-  Profile_Start(gsm_mqtt_loop);
-  // Restart MQTT connection is required?
-  if (gsmMqttRestartTime > 0 && millis() > gsmMqttRestartTime)
-  {
-      gsmMqttRestartTime = 0;
-
-      if (mqtt.connected())
-      {
-          DBUGF("Disconnecting GSM_MQTT");
-          mqtt.disconnect();
-      }
-
-      gsmNextMqttReconnectAttempt = 0;
-  }
-
-  if (config_mqtt_managed_enabled() && !mqtt.connected())
-  {
-      unsigned long now = millis();
-      // try and reconnect every x seconds
-      if (millis() - gsmNextMqttReconnectAttempt > 10000L) 
-      {
-          DBUGF("Trying GSM_MQTT Connect...\n");
-          gsmNextMqttReconnectAttempt = now;
-          // gsm_mqtt_connect(); // Attempt to reconnect
-          if (gsm_mqtt_connect()) {
-            gsmNextMqttReconnectAttempt = 0;
-          }
-      }
-    delay(10);
-    return;
-  }
-  mqtt.loop();
-  Profile_End(mqtt_loop, 5);
-}
-
-void gsm_mqtt_restart()
+void nofos_mqtt_restart()
 {
   // If connected disconnect MQTT to trigger re-connect with new details
   gsmMqttRestartTime = millis();
 }
 
-boolean gsm_mqtt_connected()
+boolean nofos_mqtt_connected()
 {
   return mqtt.connected();
 }
 
-boolean gsm_mqtt_modem_is_initialized()
-{
-  return modem_is_initialized;
-}
-
-boolean gsm_mqtt_modem_is_connected()
-{
-  return modem.isGprsConnected()
-}
-
-void gsm_mqtt_set_network_client(uint8_t net_client_id = 1)
+void nofos_mqtt_set_network_client(uint8_t net_client_id = 1)
 {
   if (net_client_id == 1) mqtt.setClient(nofos_wifi_client);
   else if (net_client_id == 2) mqtt.setClient(nofos_gsm_client);
 }
 
-void gsm_mqtt_modem_init()
+/* GSM Modem SIM800L API */
+
+void gsm_modem_init()
 {
   // Init port baud and GPIO's
   setup_modem();
   // Init SIM800L Module
   sim800l_init();
+}
+
+boolean gsm_modem_is_initialized()
+{
+  return modem_is_initialized;
+}
+
+boolean gsm_modem_is_connected()
+{
+  return modem.isGprsConnected()
 }
 
 #endif

@@ -366,7 +366,7 @@ handleSaveMqtt(MongooseHttpServerRequest *request) {
   // If connected disconnect MQTT to trigger re-connect with new details
   mqtt_restart();
   #ifdef ENABLE_SIM800L_MQTT
-  gsm_mqtt_restart();
+  nofos_mqtt_restart();
   #endif
 }
 

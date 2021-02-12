@@ -121,7 +121,7 @@ void setup()
 
 #ifdef ENABLE_SIM800L_MQTT
   disableLoopWDT();
-  gsm_mqtt_begin();
+  nofos_mqtt_begin();
   enableLoopWDT();
 #endif
 
@@ -219,7 +219,7 @@ loop() {
 
   #ifdef ENABLE_SIM800L_MQTT
     disableLoopWDT();
-    gsm_mqtt_loop();
+    nofos_mqtt_loop();
     enableLoopWDT();
   #endif
 

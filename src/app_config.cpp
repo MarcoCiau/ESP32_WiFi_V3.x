@@ -182,7 +182,7 @@ void config_changed(String name)
     if(mqtt_connected() != config_mqtt_enabled()) {
       mqtt_restart();
       #ifdef ENABLE_SIM800L_MQTT
-      gsm_mqtt_restart();
+      nofos_mqtt_restart();
       #endif
     }
     if(emoncms_connected != config_emoncms_enabled()) {
@@ -191,7 +191,7 @@ void config_changed(String name)
   } else if(name.startsWith("mqtt_")) {
     mqtt_restart();
     #ifdef ENABLE_SIM800L_MQTT
-    gsm_mqtt_restart();
+    nofos_mqtt_restart();
     #endif
   } else if(name.startsWith("emoncms_")) {
     emoncms_updated = true;

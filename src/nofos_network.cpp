@@ -3,6 +3,7 @@
 #include "net_manager.h"
 
 #define GSM_MODEM_CONNECT_ATTEMP_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
+#define NOFOS_MQTT_MAX_CONNECTIONS_ATTEMPS 10 /* MQTT connections attemps  */
 #define GSM_MODEM_MAX_CONNECT_ATTEMPS 10 /* GSM Module MAX connections attemps  */
 #define WIFI_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get WiFi Status every 10 secs*/
 #define NET_MAX_CONNECT_ATTEMP_BEFORE_FALLBACK 10 /* WiFi/GSM connections attemps before to switch into fallback mode */
@@ -15,9 +16,12 @@ enum NOFOS_NETWORK_STATUS {IDLE = 1, WIFI_AS_FALLBACK = 2, GSM_AS_FALLBACK};
 uint8_t nofos_current_profile = ONLY_WIFI;
 uint8_t nofos_net_status = IDLE;
 
-
+static uint8_t mqttConnectionAttempsCounter = 0;
 static uint8_t gsmConnectionAttempsCounter = 0;
 static uint8_t wifiConnectionAttempsCounter = 0;
+static uint8_t modemReconnectAttempt = 0; //todo: remove
+
+static unsigned long gsmModemConnectionAttempTimer = 0;
 static unsigned long wifiStatusSupervisorTimer  = 0;
 
 
@@ -41,35 +45,77 @@ void nofos_network_profile_init() {
     case ONLY_GSM:
     case GSM_WITH_FALLBACK:
     /* Set MQTT Network Client */
-    gsm_mqtt_set_network_client(2);
+    nofos_mqtt_set_network_client(2);
     /* Init GSM Module*/
-    gsm_mqtt_modem_init();
+    gsm_modem_init();
     break;
     case ONLY_WIFI:
     case WIFI_WITH_FALLBACK:
     /* Set MQTT Network Client */
-    gsm_mqtt_set_network_client(1);
-      break;
+    nofos_mqtt_set_network_client(1);
+    break;
     default:
-      /* Set MQTT Network Client */
-      gsm_mqtt_set_network_client(1);
-      break;
+    /* Set MQTT Network Client */
+    nofos_mqtt_set_network_client(1);
+    break;
   }
 }
 
+/* Run GSM Network */
+// void gsm_network_loop(){
+//   if (gsm_modem_is_initialized())
+// }
+
+void only_gsm_network_loop()
+{
+  /* 
+  1. If the GSM is not available or disconnected, try to connect every 60 secs
+  2. In ONLY_GSM profile, After 10 connection attemps, we should init and restart the gsm module connection
+  */
+
+  /* if modem initialization failed, try reconnect it once each  GSM_MODEM_CONNECT_ATTEMP_TIMEOUT (60 secs) */
+  if (!gsm_modem_is_initialized() && (millis() - gsmModemConnectionAttempTimer < GSM_MODEM_CONNECT_ATTEMP_TIMEOUT) ) return;
+  gsmModemConnectionAttempTimer = millis();
+  /* Increment MQTT connections attemps*/
+  if (!nofos_mqtt_connected) mqttConnectionAttempsCounter++;
+  if (!gsm_modem_is_connected() || mqttConnectionAttempsCounter > NOFOS_MQTT_MAX_CONNECTIONS_ATTEMPS)
+  {
+    gsm_modem_restart();
+    mqttConnectionAttempsCounter = 0;
+  }
+  if (!gsm_modem_is_initialized() && !gsm_modem_is_connected()) return;
+  nofos_mqtt_loop();
+}
+
+void only_wifi_network_loop()
+{
+  /* WiFi Reconnection Logic :
+  1. Due the WiFi Connection attemps is handled by the OpenEVSE core, we will get the wifi status each 10 secs
+  2. We will ONLY get the wifi status from the OpenEVESE core each 10 secs
+  */
+
+  /* Get WiFi status once each WIFI_STATUS_SUPERVISOR_TIMEOUT (10 secs) */
+  if ((millis() - wifiStatusSupervisorTimer < WIFI_STATUS_SUPERVISOR_TIMEOUT)) return;
+  wifiStatusSupervisorTimer = millis();
+  if (!net_is_connected()) return;
+  nofos_mqtt_loop();
+}
+
 void nofos_network_begin {
-    nofos_network_profile_init();
-    gsm_mqtt_begin();
+  nofos_network_profile_init();
+  nofos_mqtt_begin();
+  gsmModemConnectionAttempTimer = millis();
 }
 
 void nofos_network_loop()
 {
-
+  if (nofos_current_profile == ONLY_WIFI) only_wifi_network_loop();
+  else if (nofos_current_profile == ONLY_GSM) only_gsm_network_loop();
 }
 
 void set_wifi_as_fallback()
 {
-  mqtt.setClient(nofos_wifi_client);
+  nofos_mqtt_set_network_client(1);
   nofos_net_status = WIFI_AS_FALLBACK;
 }
 
@@ -83,21 +129,20 @@ boolean nofos_gsm_fallback_hdler() {
   5. In GSM_WITH_FALLBACK profile, after 10 WiFi Connection attemps, we WILL back to GSM  
 */
 
-  if (nofos_net_profile != ONLY_GSM && nofos_net_profile != GSM_WITH_FALLBACK) return;
+  if (nofos_current_profile != ONLY_GSM && nofos_current_profile != GSM_WITH_FALLBACK) return;
 
   /* Try reconnect the modem once each 60 secs */
-  if (!modem_is_initialized && (millis() - modemReconnectAttempt < GSM_MODEM_CONNECT_ATTEMP_TIMEOUT)) return;
+  if (!gsm_modem_is_initialized() && (millis() - modemReconnectAttempt < GSM_MODEM_CONNECT_ATTEMP_TIMEOUT)) return;
   modemReconnectAttempt = millis();
 
-  if (!modem.isGprsConnected())
+  if (!gsm_modem_is_connected())
   {
-    if (nofos_net_profile == ONLY_GSM && gsmConnectionAttempsCounter > GSM_MODEM_MAX_CONNECT_ATTEMPS)
+    if (nofos_current_profile == ONLY_GSM && gsmConnectionAttempsCounter > GSM_MODEM_MAX_CONNECT_ATTEMPS)
     {
-      checkSIMCardStatus();
-      sim800l_init();
+      gsm_modem_restart();
       gsmConnectionAttempsCounter = 0;
     }
-    else if (nofos_net_profile == GSM_WITH_FALLBACK && gsmConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMP_BEFORE_FALLBACK)
+    else if (nofos_current_profile == GSM_WITH_FALLBACK && gsmConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMP_BEFORE_FALLBACK)
     {
       //TODO: start gsm fallback
       gsmConnectionAttempsCounter = 0;
@@ -120,14 +165,14 @@ boolean nofos_wifi_fallback_hdler()
   5. In WIFI_WITH_FALLBACK profile, after 10 GSM Connection attemps, we WILL back to WIFI  
 */
 
-  if (nofos_net_profile != ONLY_WIFI && nofos_net_profile != WIFI_WITH_FALLBACK) return;
+  if (nofos_current_profile != ONLY_WIFI && nofos_current_profile != WIFI_WITH_FALLBACK) return;
   /* Check WiFi Status once each 10 secs */
   if (millis() - wifiStatusSupervisorTimer < WIFI_STATUS_SUPERVISOR_TIMEOUT) return;
   wifiStatusSupervisorTimer = millis();
 
-  // if (nofos_net_profile == ONLY_WIFI) /* In WIFI_ONLY we have not to do something, the openEVSE core will handle the WiFi Connection */
+  // if (nofos_current_profile == ONLY_WIFI) /* In WIFI_ONLY we have not to do something, the openEVSE core will handle the WiFi Connection */
 
-  if (nofos_net_profile == WIFI_WITH_FALLBACK)
+  if (nofos_current_profile == WIFI_WITH_FALLBACK)
   {
     if (net_is_connected()) wifiConnectionAttempsCounter = 0;
     else wifiConnectionAttempsCounter++;

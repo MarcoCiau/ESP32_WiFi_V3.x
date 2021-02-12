@@ -55,6 +55,11 @@ extern void nofos_mqtt_set_network_client(uint8_t net_client_id = 1);
 extern void gsm_modem_init();
 
 // -------------------------------------------------------------------
+// GSM SIM restart and reinitialization
+// -------------------------------------------------------------------
+extern void gsm_modem_restart();
+
+// -------------------------------------------------------------------
 // Return true if gsm modem is initialized, false if not
 // -------------------------------------------------------------------
 extern boolean gsm_modem_is_initialized();

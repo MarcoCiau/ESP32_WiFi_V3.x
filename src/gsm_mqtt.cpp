@@ -341,9 +341,9 @@ void nofos_mqtt_loop()
       {
           DBUGF("Trying GSM_MQTT Connect...\n");
           gsmNextMqttReconnectAttempt = now;
-          nofos_mqtt_connect();
+          if (nofos_mqtt_connect())gsmNextMqttReconnectAttempt = 0;
       }
-    delay(10);
+    delay(30);
     return;
   }
   mqtt.loop();
@@ -393,6 +393,13 @@ void gsm_modem_init()
 {
   // Init port baud and GPIO's
   setup_modem();
+  // Init SIM800L Module
+  sim800l_init();
+}
+
+void gsm_modem_restart()
+{
+  checkSIMCardStatus();
   // Init SIM800L Module
   sim800l_init();
 }

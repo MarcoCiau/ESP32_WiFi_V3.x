@@ -45,7 +45,7 @@ extern boolean nofos_mqtt_connected();
 // Set MQTT Network Client : wifi or gsm
 // net_client_id: the network client ID. 1 = WIFI, 2 = GSM
 // -------------------------------------------------------------------
-extern void nofos_mqtt_set_network_client(uint8_t net_client_id = 1);
+extern void nofos_mqtt_set_network_client(uint8_t net_client_id);
 
 /* GSM Modem SIM800L API */
 

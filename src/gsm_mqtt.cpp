@@ -381,7 +381,7 @@ boolean nofos_mqtt_connected()
   return mqtt.connected();
 }
 
-void nofos_mqtt_set_network_client(uint8_t net_client_id = 1)
+void nofos_mqtt_set_network_client(uint8_t net_client_id)
 {
   if (net_client_id == 1) mqtt.setClient(nofos_wifi_client);
   else if (net_client_id == 2) mqtt.setClient(nofos_gsm_client);
@@ -411,7 +411,7 @@ boolean gsm_modem_is_initialized()
 
 boolean gsm_modem_is_connected()
 {
-  return modem.isGprsConnected()
+  return modem.isGprsConnected();
 }
 
 #endif

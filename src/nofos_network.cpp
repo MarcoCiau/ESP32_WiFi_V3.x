@@ -14,7 +14,7 @@ uint8_t nofos_current_profile = ONLY_WIFI;
 uint8_t nofos_net_status = WIFI_AS_MAIN_NETWORK;
 
 /* MQTT, GSM & WiFi Connections attemps counters */
-static uint8_t mqttConnectionAttempsCounter = 0;
+// static uint8_t mqttConnectionAttempsCounter = 0; /* */
 static uint8_t gsmConnectionAttempsCounter = 0;
 static uint8_t wifiConnectionAttempsCounter = 0;
 
@@ -91,7 +91,7 @@ uint8_t handle_wifi_network()
   /* Get WiFi status once each WIFI_STATUS_SUPERVISOR_TIMEOUT (10 secs) */
   if ((millis() - wifiStatusSupervisorTimer < WIFI_STATUS_SUPERVISOR_TIMEOUT)) return 0; /* Timer isn't expired */
   wifiStatusSupervisorTimer = millis(); 
-  if (net_is_connected()) return 1; /* Success */
+  if (net_is_connected() == true) return 1; /* Success */
   else return 2; /* Error */
 }
 
@@ -133,7 +133,7 @@ void fallback_network_handler()
       set_gsm_as_main_network();
     }
     /* Execute MQTT if WiFi is connected */
-    if (net_is_connected) nofos_mqtt_loop();
+    if (net_is_connected() == true) nofos_mqtt_loop();
   }
 }
 
@@ -153,7 +153,7 @@ void only_wifi_network_loop()
   2. We will ONLY get the wifi status from the OpenEVESE core each 10 secs
   */
   handle_wifi_network();
-  if (net_is_connected) nofos_mqtt_loop();
+  if (net_is_connected() == true) nofos_mqtt_loop();
 }
 
 void gsm_with_fallback_network_loop()
@@ -166,7 +166,8 @@ void wifi_with_fallback_network_loop()
   fallback_network_handler();
 }
 
-void nofos_network_begin {
+void nofos_network_begin() 
+{
   nofos_network_profile_init();
   nofos_mqtt_begin();
   gsmModemConnectionAttempTimer = millis();

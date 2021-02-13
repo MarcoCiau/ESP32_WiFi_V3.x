@@ -1,4 +1,4 @@
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
 #include "emonesp.h"
 #include "gsm_mqtt.h"
 #include "app_config.h"

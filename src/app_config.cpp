@@ -14,7 +14,7 @@
 #include <EEPROM.h>             // Save config settings
 #include <ConfigJson.h>
 
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
 #include "gsm_mqtt.h"
 #endif
 
@@ -181,7 +181,7 @@ void config_changed(String name)
     divertmode_update((config_divert_enabled() && 1 == config_charge_mode()) ? DIVERT_MODE_ECO : DIVERT_MODE_NORMAL);
     if(mqtt_connected() != config_mqtt_enabled()) {
       mqtt_restart();
-      #ifdef ENABLE_SIM800L_MQTT
+      #ifdef ENABLE_NOFOS_GTWY
       nofos_mqtt_restart();
       #endif
     }
@@ -190,7 +190,7 @@ void config_changed(String name)
     }
   } else if(name.startsWith("mqtt_")) {
     mqtt_restart();
-    #ifdef ENABLE_SIM800L_MQTT
+    #ifdef ENABLE_NOFOS_GTWY
     nofos_mqtt_restart();
     #endif
   } else if(name.startsWith("emoncms_")) {

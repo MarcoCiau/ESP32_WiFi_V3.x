@@ -1,3 +1,7 @@
+#ifndef ENABLE_NOFOS_GTWY
+#undef ENABLE_NOFOS_GTWY
+#endif
+#ifdef ENABLE_NOFOS_GTWY
 #include "nofos_network.h"
 #include "gsm_mqtt.h"
 #include "net_manager.h"
@@ -180,3 +184,4 @@ void nofos_network_loop()
   else if (nofos_current_profile == WIFI_WITH_FALLBACK) wifi_with_fallback_network_loop();
   else if (nofos_current_profile == GSM_WITH_FALLBACK) gsm_with_fallback_network_loop();
 }
+#endif // ENABLE_NOFOS_GTWY

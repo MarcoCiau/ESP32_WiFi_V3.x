@@ -50,8 +50,9 @@
 #include "LedManagerTask.h"
 
 
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
 #include "gsm_mqtt.h"
+#include "nofos_network.h"
 #endif
 
 #ifdef ENABLE_SDM_METER
@@ -119,9 +120,10 @@ void setup()
 
   input_setup();
 
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
   disableLoopWDT();
-  nofos_mqtt_begin();
+  // nofos_mqtt_begin();
+  nofos_network_begin();
   enableLoopWDT();
 #endif
 
@@ -209,6 +211,12 @@ loop() {
     }
   }
 
+  #ifdef ENABLE_NOFOS_GTWY
+    disableLoopWDT();
+    // nofos_mqtt_loop();
+    nofos_network_loop();
+    enableLoopWDT();
+  #endif
   if(net_is_connected())
   {
     if (config_tesla_enabled()) {
@@ -216,12 +224,6 @@ loop() {
     }
 
     mqtt_loop();
-
-  #ifdef ENABLE_SIM800L_MQTT
-    disableLoopWDT();
-    nofos_mqtt_loop();
-    enableLoopWDT();
-  #endif
 
     // -------------------------------------------------------------------
     // Do these things once every 30 seconds

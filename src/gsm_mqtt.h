@@ -1,7 +1,7 @@
 #ifndef GSM_MQTT_H
 #define GSM_MQTT_H
 
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
@@ -69,7 +69,7 @@ extern boolean gsm_modem_is_initialized();
 // -------------------------------------------------------------------
 extern boolean gsm_modem_is_connected();
 
-#endif //ENABLE_SIM800L_MQTT
+#endif //ENABLE_NOFOS_GTWY
 #endif //GSM_MQTT_H
 
 

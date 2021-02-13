@@ -35,7 +35,7 @@ typedef const __FlashStringHelper *fstr_t;
 #include "time_man.h"
 #include "tesla_client.h"
 
-#ifdef ENABLE_SIM800L_MQTT
+#ifdef ENABLE_NOFOS_GTWY
 #include "gsm_mqtt.h"
 #endif
 
@@ -365,7 +365,7 @@ handleSaveMqtt(MongooseHttpServerRequest *request) {
 
   // If connected disconnect MQTT to trigger re-connect with new details
   mqtt_restart();
-  #ifdef ENABLE_SIM800L_MQTT
+  #ifdef ENABLE_NOFOS_GTWY
   nofos_mqtt_restart();
   #endif
 }

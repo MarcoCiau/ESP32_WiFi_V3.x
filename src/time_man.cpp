@@ -123,6 +123,7 @@ void time_set_time(struct timeval set_time, const char *source)
   settimeofday(&set_time, NULL);
 
   // Set the time on the OpenEVSE, set from the local time as this could take several ms
+  if (!OpenEVSE.isConnected()) return;
   OpenEVSE.getTime([](int ret, time_t evse_time)
   {
     if(RAPI_RESPONSE_OK == ret)

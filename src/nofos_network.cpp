@@ -5,6 +5,8 @@
 #include "nofos_network.h"
 #include "gsm_mqtt.h"
 #include "net_manager.h"
+#include "debug.h"
+#include "emonesp.h"
 
 #define GSM_MODEM_CONNECT_ATTEMP_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
 #define WIFI_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get WiFi Status every 10 secs*/
@@ -25,6 +27,26 @@ static uint8_t wifiConnectionAttempsCounter = 0;
 /* Timer Counters */
 static unsigned long gsmModemConnectionAttempTimer = 0;
 static unsigned long wifiStatusSupervisorTimer  = 0;
+
+void debug_nofos_network_profile(boolean debug)
+{
+  if (!debug) return;
+ switch (nofos_current_profile)
+ {
+ case ONLY_GSM:
+   DBUGLN("Nofos Network Profile: Only GSM");
+   break;
+ case ONLY_WIFI:
+   DBUGLN("Nofos Network Profile: Only WiFi");
+   break;
+ case GSM_WITH_FALLBACK:
+   DBUGLN("Nofos Network Profile: GSM with Fallback");
+   break;
+ case WIFI_WITH_FALLBACK:
+   DBUGLN("Nofos Network Profile: WiFi with Fallback");
+   break;
+ }
+}
 
 void set_wifi_as_main_network()
 {
@@ -52,7 +74,7 @@ bool nofos_network_save_profile(uint8_t profile)
 void nofos_network_profile_init() {
 
   nofos_current_profile = nofos_network_load_profile();
-
+  debug_nofos_network_profile(true);
   switch (nofos_current_profile)
   {
     case ONLY_GSM:
@@ -172,6 +194,7 @@ void wifi_with_fallback_network_loop()
 
 void nofos_network_begin() 
 {
+  DBUGLN("Nofos Network Begin...");
   nofos_network_profile_init();
   nofos_mqtt_begin();
   gsmModemConnectionAttempTimer = millis();
@@ -179,9 +202,11 @@ void nofos_network_begin()
 
 void nofos_network_loop()
 {
+  Profile_Start(nofos_mqtt_loop);
   if (nofos_current_profile == ONLY_WIFI) only_wifi_network_loop();
   else if (nofos_current_profile == ONLY_GSM) only_gsm_network_loop();
   else if (nofos_current_profile == WIFI_WITH_FALLBACK) wifi_with_fallback_network_loop();
   else if (nofos_current_profile == GSM_WITH_FALLBACK) gsm_with_fallback_network_loop();
+  Profile_End(nofos_mqtt_loop, 5);
 }
 #endif // ENABLE_NOFOS_GTWY

@@ -122,7 +122,6 @@ void setup()
 
 #ifdef ENABLE_NOFOS_GTWY
   disableLoopWDT();
-  // nofos_mqtt_begin();
   nofos_network_begin();
   enableLoopWDT();
 #endif
@@ -213,7 +212,6 @@ loop() {
 
   #ifdef ENABLE_NOFOS_GTWY
     disableLoopWDT();
-    // nofos_mqtt_loop();
     nofos_network_loop();
     enableLoopWDT();
   #endif

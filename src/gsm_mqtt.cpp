@@ -10,6 +10,7 @@
 #include "openevse.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#define MQTT_NEXT_RECONNECT_ATTEMPT_TIMEOUT 30000 /* If MQTT is connected, reconnect it each 30 secs*/
 // Set SIM800L as GSM Modem 
 #define TINY_GSM_MODEM_SIM800
 // Define how you're planning to connect to the internet
@@ -337,11 +338,11 @@ void nofos_mqtt_loop()
   {
       unsigned long now = millis();
       // try and reconnect every x seconds
-      if (millis() - gsmNextMqttReconnectAttempt > 10000L) 
+      if (millis() - gsmNextMqttReconnectAttempt > MQTT_NEXT_RECONNECT_ATTEMPT_TIMEOUT) 
       {
           DBUGF("Trying GSM_MQTT Connect...\n");
-          gsmNextMqttReconnectAttempt = now;
-          if (nofos_mqtt_connect())gsmNextMqttReconnectAttempt = 0;
+          nofos_mqtt_connect();
+          gsmNextMqttReconnectAttempt = millis();
       }
     delay(30);
     return;

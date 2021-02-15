@@ -7,6 +7,7 @@
 #include "net_manager.h"
 #include "debug.h"
 #include "emonesp.h"
+#include "app_config.h"
 
 #define GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
 #define MQTT_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get MQTT Client status every 10 secs*/
@@ -65,14 +66,8 @@ void set_gsm_as_main_network()
 }
 
 uint8_t nofos_network_load_profile() {
-   //TODO: load value from EEPROM
-   return GSM_WITH_FALLBACK;
-}
-
-bool nofos_network_save_profile(uint8_t profile)
-{
-  //TODO: save new network profile to the EEPROM
-  return true;
+   //load value from app_config (EEPROM)
+   return (uint8_t)nofos_network_profile;
 }
 
 void nofos_network_profile_init() {
@@ -234,5 +229,17 @@ void nofos_network_loop()
   else if (nofos_current_profile == WIFI_WITH_FALLBACK) wifi_with_fallback_network_loop();
   else if (nofos_current_profile == GSM_WITH_FALLBACK) gsm_with_fallback_network_loop();
   Profile_End(nofos_mqtt_loop, 5);
+}
+
+void nofos_network_set_profile(int profile)
+{
+  if (nofos_current_profile !=  profile)
+  {
+    DBUGLN("Nofos network profile config changed!!");
+    nofos_current_profile = (uint8_t)profile;
+    nofos_network_profile_init();
+    debug_nofos_network_profile(true);
+    nofos_mqtt_restart();
+  } 
 }
 #endif // ENABLE_NOFOS_GTWY

@@ -8,9 +8,10 @@
 #include "debug.h"
 #include "emonesp.h"
 
-#define GSM_MODEM_CONNECT_ATTEMP_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
+#define GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
+#define MQTT_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get MQTT Client status every 10 secs*/
 #define WIFI_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get WiFi Status every 10 secs*/
-#define NET_MAX_CONNECT_ATTEMPS 10 /* WiFi-GSM connections attemps before to switch into fallback mode */
+#define NET_MAX_CONNECT_ATTEMPTS 10 /* WiFi-GSM connections attemps before to switch into fallback mode */
 
 /*  Nofos Network Clients Profiles */
 enum NOFOS_NETWORK_PROFILE{ ONLY_GSM = 1, GSM_WITH_FALLBACK, ONLY_WIFI, WIFI_WITH_FALLBACK};
@@ -20,13 +21,14 @@ uint8_t nofos_current_profile = ONLY_WIFI;
 uint8_t nofos_net_status = WIFI_AS_MAIN_NETWORK;
 
 /* MQTT, GSM & WiFi Connections attemps counters */
-// static uint8_t mqttConnectionAttempsCounter = 0; /* */
+static uint8_t mqttConnectionAttempsCounter = 0; 
 static uint8_t gsmConnectionAttempsCounter = 0;
 static uint8_t wifiConnectionAttempsCounter = 0;
 
 /* Timer Counters */
 static unsigned long gsmModemConnectionAttempTimer = 0;
 static unsigned long wifiStatusSupervisorTimer  = 0;
+static unsigned long mqttStatusSupervisorTimer  = 0;
 
 void debug_nofos_network_profile(boolean debug)
 {
@@ -50,19 +52,21 @@ void debug_nofos_network_profile(boolean debug)
 
 void set_wifi_as_main_network()
 {
+  DBUGLN("\nINFO: GSM Network unavailable. Switch into WiFi Network...\n");
   nofos_mqtt_set_network_client(1);
   nofos_net_status = WIFI_AS_MAIN_NETWORK;
 }
 
 void set_gsm_as_main_network()
 {
+  DBUGLN("\nINFO: WiFi Network unavailable. Switch into GSM Network...\n");
   nofos_mqtt_set_network_client(2);
   nofos_net_status = GSM_AS_MAIN_NETWORK;
 }
 
 uint8_t nofos_network_load_profile() {
    //TODO: load value from EEPROM
-   return ONLY_WIFI;
+   return GSM_WITH_FALLBACK;
 }
 
 bool nofos_network_save_profile(uint8_t profile)
@@ -96,7 +100,28 @@ void nofos_network_profile_init() {
   }
 }
 
+/* Check if MQTT Client is connected. */
+void check_mqtt_client_status()
+{
+  if (millis() - mqttStatusSupervisorTimer < MQTT_STATUS_SUPERVISOR_TIMEOUT) return; /* Timer isn't expired */
+  mqttStatusSupervisorTimer = millis();
+  if (nofos_mqtt_connected())
+  {
+    mqttConnectionAttempsCounter = 0; /* Success */
+  } 
+  else mqttConnectionAttempsCounter++; /* Error */
+}
 
+/* Handle MQTT Connection. After NET_MAX_CONNECT_ATTEMPTS, re-init GSM module*/
+void handle_mqtt_connections()
+{
+  check_mqtt_client_status(); 
+  if (mqttConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS )
+  {
+    DBUGF("\n\nMQTT Connection fail after %d connections, restarting GSM Module...\n\n", NET_MAX_CONNECT_ATTEMPTS);
+    gsm_modem_restart(); /* Init and connect GSM Module Again*/
+  } 
+}
 
 /* Check if gsm and gprs is connected. Init and connect the GSM Module again if required. */
 uint8_t handle_gsm_network()
@@ -104,10 +129,11 @@ uint8_t handle_gsm_network()
   /* 
   1. If the GSM is not available or disconnected, try to connect every 60 secs
   */
-  if (!gsm_modem_is_initialized() && (millis() - gsmModemConnectionAttempTimer < GSM_MODEM_CONNECT_ATTEMP_TIMEOUT) ) return 0; /* Timer isn't expired */
+  if ((millis() - gsmModemConnectionAttempTimer < GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT) ) return 0; /* Timer isn't expired */
   gsmModemConnectionAttempTimer = millis();
   if (!gsm_modem_is_connected()) gsm_modem_restart(); /* Init and connect GSM Module Again*/
-  if (gsm_modem_is_initialized() && gsm_modem_is_connected()) return 1; /* Success */
+  if (nofos_current_profile == ONLY_GSM) handle_mqtt_connections();
+  if (gsm_modem_is_initialized() && gsm_modem_is_connected() && nofos_mqtt_connected()) return 1; /* Success */
   else return 2; /* Error */
 }
 
@@ -137,7 +163,7 @@ void fallback_network_handler()
     if (state == 2) gsmConnectionAttempsCounter++;
     else if (state == 1) gsmConnectionAttempsCounter = 0;
     /* STEP 3 */
-    if (gsmConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPS)
+    if (gsmConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS)
     {
       gsmConnectionAttempsCounter = 0;
       set_wifi_as_main_network();
@@ -153,7 +179,7 @@ void fallback_network_handler()
     else if (state == 1) wifiConnectionAttempsCounter = 0;
 
     /* STEP 5 */
-    if (wifiConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPS)
+    if (wifiConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS)
     {
       wifiConnectionAttempsCounter = 0;
       set_gsm_as_main_network();

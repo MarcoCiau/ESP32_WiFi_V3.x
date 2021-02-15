@@ -51,6 +51,9 @@ extern double divert_attack_smoothing_factor;
 extern double divert_decay_smoothing_factor;
 extern uint32_t divert_min_charge_time;
 
+// Nofos network settings
+extern int nofos_network_profile;
+
 // 24-bits of Flags
 extern uint32_t flags;
 
@@ -148,6 +151,11 @@ extern void config_save_wifi(String qsid, String qpass);
 // Save the Ohm settings
 // -------------------------------------------------------------------
 extern void config_save_ohm(bool enable, String qohm);
+
+// -------------------------------------------------------------------
+// Save Nofos network profile id: ONLY_GSM=1, GSM_WITH_FALLBACK=2, ONLY_WIFI=3, WIFI_WITH_FALLBACK=4
+// -------------------------------------------------------------------
+extern void config_nofos_network_profile(int profile_id);
 
 // -------------------------------------------------------------------
 // Save the flags

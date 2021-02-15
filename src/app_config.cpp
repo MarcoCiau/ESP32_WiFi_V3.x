@@ -5,6 +5,7 @@
 #include "tesla_client.h"
 #include "emoncms.h"
 #include "input.h"
+#include "nofos_network.h"
 
 #include "app_config.h"
 #include "app_config_mqtt.h"
@@ -70,6 +71,9 @@ String tesla_username;
 String tesla_password;
 int tesla_vehidx;
 
+// Nofos network settings
+int nofos_network_profile;
+
 String esp_hostname_default = "openevse-"+ESPAL.getShortId();
 
 void config_changed(String name);
@@ -123,6 +127,10 @@ ConfigOpt *opts[] =
   new ConfigOptDefenition<String>(tesla_username, "", "tesla_username", "tu"),
   new ConfigOptSecret(tesla_password, "", "tesla_password", "tp"),
   new ConfigOptDefenition<int>(tesla_vehidx, -1, "tesla_vehidx", "ti"),
+
+// Nofos Network Settings
+  //(value pointer, default value, long_keyname, short_keyname)
+  new ConfigOptDefenition<int>(nofos_network_profile, 1, "nofos_network_profile", "nfp"),
 
 // Flags
   &flagsOpt,
@@ -205,6 +213,8 @@ void config_changed(String name)
     teslaClient.setPass(tesla_password.c_str());
   } else if(name == "tesla_vehidx") {
     teslaClient.setVehicleIdx(tesla_vehidx);
+  } else if(name == "nofos_network_profile") {
+    nofos_network_set_profile(nofos_network_profile);
   }
 }
 
@@ -348,6 +358,12 @@ config_save_ohm(bool enable, String qohm)
 
   config.set("ohm", qohm);
   config.set("flags", newflags);
+  config.commit();
+}
+
+void config_nofos_network_profile(int profile_id)
+{
+  config.set("nofos_network_profile", profile_id);
   config.commit();
 }
 

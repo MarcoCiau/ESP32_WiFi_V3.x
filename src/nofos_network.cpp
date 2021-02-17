@@ -53,14 +53,14 @@ void debug_nofos_network_profile(boolean debug)
 
 void set_wifi_as_main_network()
 {
-  DBUGLN("\nINFO: GSM Network unavailable. Switch into WiFi Network...\n");
+  DBUGLN("\nINFO: Setting WiFi as main network...\n");
   nofos_mqtt_set_network_client(1);
   nofos_net_status = WIFI_AS_MAIN_NETWORK;
 }
 
 void set_gsm_as_main_network()
 {
-  DBUGLN("\nINFO: WiFi Network unavailable. Switch into GSM Network...\n");
+  DBUGLN("\nINFO: Setting GSM as main network...\n");
   nofos_mqtt_set_network_client(2);
   nofos_net_status = GSM_AS_MAIN_NETWORK;
 }
@@ -127,9 +127,13 @@ uint8_t handle_gsm_network()
   if ((millis() - gsmModemConnectionAttempTimer < GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT) ) return 0; /* Timer isn't expired */
   gsmModemConnectionAttempTimer = millis();
   if (!gsm_modem_is_connected()) gsm_modem_restart(); /* Init and connect GSM Module Again*/
-  if (nofos_current_profile == ONLY_GSM) handle_mqtt_connections();
-  if (gsm_modem_is_initialized() && gsm_modem_is_connected() && nofos_mqtt_connected()) return 1; /* Success */
-  else return 2; /* Error */
+  if (nofos_current_profile == ONLY_GSM) handle_mqtt_connections(); /* only gsm mode : Reconnect gsm module if mqtt connection fails*/
+  if (gsm_modem_is_initialized() && gsm_modem_is_connected() && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet/no sim data, for that reason we need to validate if mqtt is connected too */
+  else
+  {
+    DBUGLN("\nERROR: Nofos Network GSM-MQTT is not connected!\n");
+    return 2; /* Error */
+  } 
 }
 
 /* Check if wifi is connected. */
@@ -138,19 +142,33 @@ uint8_t handle_wifi_network()
   /* Get WiFi status once each WIFI_STATUS_SUPERVISOR_TIMEOUT (10 secs) */
   if ((millis() - wifiStatusSupervisorTimer < WIFI_STATUS_SUPERVISOR_TIMEOUT)) return 0; /* Timer isn't expired */
   wifiStatusSupervisorTimer = millis(); 
-  if (net_is_connected() == true) return 1; /* Success */
-  else return 2; /* Error */
+  if (net_is_connected() == true && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet, for that reason we need to validate if mqtt is connected too */
+  else
+  {
+    DBUGLN("\nERROR: Nofos Network WiFi-MQTT is not connected!\n");
+    return 2; /* Error */
+  } 
 }
 
 void fallback_network_handler()
 {
- /* GSM & WiFi Netowrk Reconnection Logic :
+ /* GSM Netowrk Reconnection Logic :
   STEP 1. If the GSM is not available or disconnected, try to connect every 60 secs
   STEP 2. In GSM_WITH_FALLBACK profile, if there is GSM connections troubles,  we will try reconnect to it   
   STEP 3. In GSM_WITH_FALLBACK profile, after 10 GSM connection attemps, we WILL switch to WiFi fallback
   STEP 4. In GSM_WITH_FALLBACK profile, if there is WiFi connections troubles,  we will try reconnect to it  
   STEP 5. In GSM_WITH_FALLBACK profile, after 10 WiFi Connection attemps, we will back to GSM  
+*/
+
+ /* WiFi Netowrk Reconnection Logic :
+  STEP 1. Get WiFi Status every 10 secs
+  STEP 2. In WiFi_WITH_FALLBACK profile, if there is WiFi connections troubles,  we wait a connection via OpenEVESE Core   
+  STEP 3. In WiFi_WITH_FALLBACK profile, after 10 WiFi connection attemps, we WILL switch to GSM fallback
+  STEP 4. In WiFi_WITH_FALLBACK profile, if there is GSM connections troubles,  we will try reconnect to it  
+  STEP 5. In WiFi_WITH_FALLBACK profile, after 10 GSM Connection attemps and there is no connection, we will back to WiFi  
 */ 
+
+
   if (nofos_net_status == GSM_AS_MAIN_NETWORK)
   {
     /* STEP 1 and 2*/
@@ -161,6 +179,7 @@ void fallback_network_handler()
     if (gsmConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS)
     {
       gsmConnectionAttempsCounter = 0;
+      DBUGLN("\nINFO: GSM max connections attemps reached, trying with fallback...\n");
       set_wifi_as_main_network();
     }
     /* Execute MQTT if GSM GPRS is connected */
@@ -177,7 +196,9 @@ void fallback_network_handler()
     if (wifiConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS)
     {
       wifiConnectionAttempsCounter = 0;
+      DBUGLN("\nINFO: WiFi max connections attemps reached, trying with fallback...\n");
       set_gsm_as_main_network();
+      gsm_modem_init();
     }
     /* Execute MQTT if WiFi is connected */
     if (net_is_connected() == true) nofos_mqtt_loop();
@@ -216,6 +237,8 @@ void wifi_with_fallback_network_loop()
 void nofos_network_begin() 
 {
   DBUGLN("Nofos Network Begin...");
+  /* TODO: setting network profile MANUALLY for testing*/
+  config_nofos_network_profile(WIFI_WITH_FALLBACK);
   nofos_network_profile_init();
   nofos_mqtt_begin();
   gsmModemConnectionAttempTimer = millis();

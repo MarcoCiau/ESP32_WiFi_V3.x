@@ -15,7 +15,7 @@ static MongooseSntpClient sntp;
 static unsigned long next_time = 0;
 static bool fetching_time = false;
 static bool set_the_time = false;
-
+bool time_man_is_updated;
 #ifndef TIME_POLL_TIME
 // Check the time every 8 hours
 #define TIME_POLL_TIME 8 * 60 * 60 * 1000
@@ -36,6 +36,7 @@ void time_begin(const char *host)
 
   sntp.onError([](uint8_t err) {
     DBUGF("Got error %u", err);
+    time_man_is_updated = false;
     fetching_time = false;
     next_time = millis() + 10 * 1000;
   });
@@ -60,11 +61,13 @@ void time_loop()
     DBUGF("Trying to get time from %s", time_host);
     sntp.getTime(time_host, [](struct timeval set_time) 
     {
+      time_man_is_updated = true;
       time_set_time(set_time, time_host);
 
       fetching_time = false;
       next_time = millis() + TIME_POLL_TIME;
     });
+    DBUGF("Get time status: %d", time_man_is_updated);
   }
 
   if(set_the_time)

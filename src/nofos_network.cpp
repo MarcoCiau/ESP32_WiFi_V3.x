@@ -219,7 +219,7 @@ void fallback_network_handler()
       return;
     }
     /* Execute MQTT if WiFi is connected */
-    if (net_is_connected() == true) nofos_mqtt_loop();
+    if (time_man_is_updated && net_is_connected() == true) nofos_mqtt_loop();
   }
 }
 
@@ -239,7 +239,7 @@ void only_wifi_network_loop()
   2. We will ONLY get the wifi status from the OpenEVESE core each 10 secs
   */
   handle_wifi_network();
-  if (net_is_connected() == true && net_wifi_mode_is_sta_only()) nofos_mqtt_loop();
+  if (net_is_connected() == true && net_wifi_mode_is_sta_only() && time_man_is_updated) nofos_mqtt_loop();
 }
 
 void gsm_with_fallback_network_loop()

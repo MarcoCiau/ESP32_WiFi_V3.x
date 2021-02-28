@@ -170,14 +170,11 @@ void sim800l_init()
       DBUGLN(" ERROR: SIM800L unavailable or disconnected!");
       return;
     } 
-  } 
-    } 
-
     DBUGLN("OK: SIM800L ready!");
     String modemInfo = modem.getModemInfo();
     DBUGLN("Modem Info: " + modemInfo);
-  }
-
+  } 
+  
   if (!modem_is_initialized) return;
 
 #if TINY_GSM_USE_GPRS
@@ -194,7 +191,7 @@ void sim800l_init()
 #endif
 
   DBUG("Waiting for network...");
-  if (!modem.waitForNetwork(3000U)) {
+  if (!modem.waitForNetwork(2000U)) {
     checkSIMCardStatus();
     DBUGLN(" network fail");
     modem_is_initialized = false;

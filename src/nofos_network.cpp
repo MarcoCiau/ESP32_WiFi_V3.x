@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "emonesp.h"
 #include "app_config.h"
+#include "time_man.h"
 
 #define GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
 #define MQTT_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get MQTT Client status every 10 secs*/
@@ -145,6 +146,7 @@ uint8_t handle_wifi_network()
   if (net_is_connected() == true && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet, for that reason we need to validate if mqtt is connected either */
   else
   {
+    time_check_now();
     DBUGLN("\nERROR: Nofos Network WiFi-MQTT is not connected!\n");
     return 2; /* Error */
   } 
@@ -172,8 +174,10 @@ void fallback_network_handler()
   if (nofos_net_status == GSM_AS_MAIN_NETWORK)
   {
     /* Go back to WiFi Network mode */
-    if (nofos_current_profile == WIFI_WITH_FALLBACK && net_is_connected())
+    /* we need to check if ntp server works to validate if there is a Internet connection */
+    if (nofos_current_profile == WIFI_WITH_FALLBACK && time_man_is_updated && net_is_connected())
     {
+      DBUG("\nWiFi Connected to Internet, go Back to WiFi Network");
       delay(30);
       set_wifi_as_main_network(); 
       nofos_mqtt_restart();
@@ -190,6 +194,7 @@ void fallback_network_handler()
       gsmConnectionAttempsCounter = 0;
       DBUGLN("\nINFO: GSM max connections attemps reached, trying with fallback...\n");
       set_wifi_as_main_network();
+      return;
     }
     /* Execute MQTT if GSM GPRS is connected */
     if (gsm_modem_is_connected()) nofos_mqtt_loop();
@@ -208,6 +213,7 @@ void fallback_network_handler()
       DBUGLN("\nINFO: WiFi max connections attemps reached, trying with fallback...\n");
       set_gsm_as_main_network();
       gsm_modem_init();
+      return;
     }
     /* Execute MQTT if WiFi is connected */
     if (net_is_connected() == true) nofos_mqtt_loop();

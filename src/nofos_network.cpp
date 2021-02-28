@@ -132,6 +132,7 @@ uint8_t handle_gsm_network()
   if (gsm_modem_is_initialized() && gsm_modem_is_connected() && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet/no sim data, for that reason we need to validate if mqtt is connected too */
   else
   {
+    time_check_now();
     DBUGLN("\nERROR: Nofos Network GSM-MQTT is not connected!\n");
     return 2; /* Error */
   } 
@@ -177,10 +178,10 @@ void fallback_network_handler()
     /* we need to check if ntp server works to validate if there is a Internet connection */
     if (nofos_current_profile == WIFI_WITH_FALLBACK && time_man_is_updated && net_is_connected())
     {
+      delay(10);
       DBUG("\nWiFi Connected to Internet, go Back to WiFi Network");
-      delay(30);
       set_wifi_as_main_network(); 
-      // nofos_mqtt_restart();
+      nofos_mqtt_restart();
       return;
     }
 

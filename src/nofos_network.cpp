@@ -12,7 +12,7 @@
 #define GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
 #define MQTT_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get MQTT Client status every 10 secs*/
 #define WIFI_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get WiFi Status every 10 secs*/
-#define NET_MAX_CONNECT_ATTEMPTS 10 /* WiFi-GSM connections attemps before to switch into fallback mode */
+#define NET_MAX_CONNECT_ATTEMPTS 4 /* WiFi-GSM connections attemps before to switch into fallback mode */
 
 /*  Nofos Network Clients Profiles */
 enum NOFOS_NETWORK_PROFILE{ ONLY_GSM = 1, GSM_WITH_FALLBACK, ONLY_WIFI, WIFI_WITH_FALLBACK};
@@ -142,7 +142,7 @@ uint8_t handle_wifi_network()
   /* Get WiFi status once each WIFI_STATUS_SUPERVISOR_TIMEOUT (10 secs) */
   if ((millis() - wifiStatusSupervisorTimer < WIFI_STATUS_SUPERVISOR_TIMEOUT)) return 0; /* Timer isn't expired */
   wifiStatusSupervisorTimer = millis(); 
-  if (net_is_connected() == true && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet, for that reason we need to validate if mqtt is connected too */
+  if (net_is_connected() == true && nofos_mqtt_connected()) return 1; /* Success */ /*Note: sometimes the network is connected but there is no connection to the Internet, for that reason we need to validate if mqtt is connected either */
   else
   {
     DBUGLN("\nERROR: Nofos Network WiFi-MQTT is not connected!\n");
@@ -171,6 +171,15 @@ void fallback_network_handler()
 
   if (nofos_net_status == GSM_AS_MAIN_NETWORK)
   {
+    /* Go back to WiFi Network mode */
+    if (nofos_current_profile == WIFI_WITH_FALLBACK && net_is_connected())
+    {
+      delay(30);
+      set_wifi_as_main_network(); 
+      nofos_mqtt_restart();
+      return;
+    }
+
     /* STEP 1 and 2*/
     uint8_t state = handle_gsm_network();
     if (state == 2) gsmConnectionAttempsCounter++;
@@ -221,7 +230,7 @@ void only_wifi_network_loop()
   2. We will ONLY get the wifi status from the OpenEVESE core each 10 secs
   */
   handle_wifi_network();
-  if (net_is_connected() == true) nofos_mqtt_loop();
+  if (net_is_connected() == true && net_wifi_mode_is_sta_only()) nofos_mqtt_loop();
 }
 
 void gsm_with_fallback_network_loop()

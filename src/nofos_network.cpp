@@ -82,7 +82,7 @@ void nofos_network_profile_init() {
     /* Set Nofos Network Client */
     set_gsm_as_main_network();
     /* Init GSM Module*/
-    gsm_modem_init();
+    gsm_modem_restart();
     break;
     case ONLY_WIFI:
     case WIFI_WITH_FALLBACK:
@@ -180,7 +180,7 @@ void fallback_network_handler()
       DBUG("\nWiFi Connected to Internet, go Back to WiFi Network");
       delay(30);
       set_wifi_as_main_network(); 
-      nofos_mqtt_restart();
+      // nofos_mqtt_restart();
       return;
     }
 
@@ -194,6 +194,7 @@ void fallback_network_handler()
       gsmConnectionAttempsCounter = 0;
       DBUGLN("\nINFO: GSM max connections attemps reached, trying with fallback...\n");
       set_wifi_as_main_network();
+      nofos_mqtt_restart();
       return;
     }
     /* Execute MQTT if GSM GPRS is connected */
@@ -212,7 +213,8 @@ void fallback_network_handler()
       wifiConnectionAttempsCounter = 0;
       DBUGLN("\nINFO: WiFi max connections attemps reached, trying with fallback...\n");
       set_gsm_as_main_network();
-      gsm_modem_init();
+      nofos_mqtt_restart();
+      gsm_modem_restart();
       return;
     }
     /* Execute MQTT if WiFi is connected */
@@ -252,6 +254,7 @@ void wifi_with_fallback_network_loop()
 void nofos_network_begin() 
 {
   DBUGLN("Nofos Network Begin...");
+  gsm_modem_init();
   /* TODO: setting network profile MANUALLY for testing*/
   config_nofos_network_profile(WIFI_WITH_FALLBACK);
   nofos_network_profile_init();

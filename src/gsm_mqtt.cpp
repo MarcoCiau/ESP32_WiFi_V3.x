@@ -31,6 +31,9 @@ static long gsmNextMqttReconnectAttempt = 0;
 static unsigned long gsmMqttRestartTime = 0;
 String lastWillMsg = "";
 
+enum GSM_HANDLER_FLAGS {MODULE_IDLE = 1, INIT_MODULE, CONNECTED_TO_NETWORK, CONNECTED_TO_APN };
+volatile uint8_t gsm_handler_id = MODULE_IDLE;
+
 #include <WiFi.h>
 #include <TinyGsmClient.h>
 #include <PubSubClient.h>
@@ -55,7 +58,7 @@ WiFiClient nofos_wifi_client;
 PubSubClient mqtt;
 
 uint32_t lastReconnectAttempt = 0;
-bool modem_is_initialized = false;
+static boolean modem_is_initialized;
 
 bool config_mqtt_managed_enabled() {
   return true;
@@ -159,7 +162,7 @@ void sim800l_init()
 
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
-  if (!modem_is_initialized)
+  if (gsm_handler_id == MODULE_IDLE)
   {
     DBUG("Initializing SIM800L modem, wait 10 sec...");
     modem_is_initialized = modem.restart();
@@ -168,14 +171,16 @@ void sim800l_init()
     {
       checkSIMCardStatus();
       DBUGLN(" ERROR: SIM800L unavailable or disconnected!");
+      gsm_handler_id = MODULE_IDLE;
       return;
     } 
+    gsm_handler_id = INIT_MODULE;
     DBUGLN("OK: SIM800L ready!");
     String modemInfo = modem.getModemInfo();
     DBUGLN("Modem Info: " + modemInfo);
   } 
   
-  if (!modem_is_initialized) return;
+  if (gsm_handler_id == MODULE_IDLE) return;
 
 #if TINY_GSM_USE_GPRS
   // Unlock your SIM card with a PIN if needed
@@ -191,28 +196,34 @@ void sim800l_init()
 #endif
 
   DBUG("Waiting for network...");
-  if (!modem.waitForNetwork(2000U)) {
+  if (!modem.waitForNetwork(3000U)) {
     checkSIMCardStatus();
     DBUGLN(" network fail");
     modem_is_initialized = false;
+    gsm_handler_id = MODULE_IDLE;
     return;
   }
   DBUGLN(" success");
 
   if (modem.isNetworkConnected()) {
+    gsm_handler_id = CONNECTED_TO_NETWORK;
     DBUGLN("Network connected");
   }
+
+if (gsm_handler_id != CONNECTED_TO_NETWORK) return;
 
 #if TINY_GSM_USE_GPRS
   // GPRS connection parameters are usually set after network registration
     DBUG("Connecting to " + String(apn));
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
       DBUGLN(" fail");
+      gsm_handler_id = MODULE_IDLE;
       return;
     }
     DBUGLN(" success");
 
   if (modem.isGprsConnected()) {
+    gsm_handler_id = CONNECTED_TO_APN;
     DBUGLN("GPRS connected");
   }
 #endif
@@ -406,7 +417,7 @@ void gsm_modem_restart()
 
 boolean gsm_modem_is_initialized()
 {
-  return modem_is_initialized;
+  return (gsm_handler_id == CONNECTED_TO_APN);
 }
 
 boolean gsm_modem_is_connected()

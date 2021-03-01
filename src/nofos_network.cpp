@@ -13,7 +13,7 @@
 #define GSM_MODEM_CONNECT_NEXT_ATTEMPT_TIMEOUT 60000 /* Try connect GSM module every 60 secs*/
 #define MQTT_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get MQTT Client status every 10 secs*/
 #define WIFI_STATUS_SUPERVISOR_TIMEOUT 10000 /* Get WiFi Status every 10 secs*/
-#define NET_MAX_CONNECT_ATTEMPTS 4 /* WiFi-GSM connections attemps before to switch into fallback mode */
+#define NET_MAX_CONNECT_ATTEMPTS 9 /* WiFi-GSM connections attemps before to switch into fallback mode */
 
 /*  Nofos Network Clients Profiles */
 enum NOFOS_NETWORK_PROFILE{ ONLY_GSM = 1, GSM_WITH_FALLBACK, ONLY_WIFI, WIFI_WITH_FALLBACK};
@@ -215,7 +215,7 @@ void fallback_network_handler()
       DBUGLN("\nINFO: WiFi max connections attemps reached, trying with fallback...\n");
       set_gsm_as_main_network();
       nofos_mqtt_restart();
-      gsm_modem_restart();
+      // gsm_modem_restart();
       return;
     }
     /* Execute MQTT if WiFi is connected */

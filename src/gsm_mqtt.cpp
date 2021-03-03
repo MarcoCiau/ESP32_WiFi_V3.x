@@ -22,9 +22,9 @@ const char apn[] = "TM";
 const char gprsUser[] = ""; //if any
 const char gprsPass[] = ""; //if any
 // MQTT Settings
-const char* broker = "test.mosquitto.org";
-const char* mqttUser = "";//if any
-const char* mqttPassword = "";//if any
+const char* broker = "192.168.4.34";
+const char* mqttUser = "nofos_mqtttest";//if any
+const char* mqttPassword = "flimboo";//if any
 uint16_t brokerPort = 1883;
 
 static long gsmNextMqttReconnectAttempt = 0;
@@ -279,7 +279,7 @@ boolean nofos_mqtt_connect()
     serializeJson(willDoc, lastWillMsg);
     DBUGVAR(lastWillMsg);
 
-    boolean connectStatus = mqtt.connect(esp_hostname.c_str(), mqtt_user.c_str(), mqtt_pass.c_str(), mqtt_announce_topic.c_str(), MQTTQOS1, false, lastWillMsg.c_str());
+    boolean connectStatus = mqtt.connect(mqttUser, mqttUser, mqttPassword, mqtt_announce_topic.c_str(), MQTTQOS1, false, lastWillMsg.c_str());
 
     if (connectStatus)
     {

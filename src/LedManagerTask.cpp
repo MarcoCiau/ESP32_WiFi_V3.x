@@ -143,7 +143,7 @@ unsigned long LedManagerTask::loop(MicroTasks::WakeReason reason)
       return animationDelay;
 
     case LedState_Cell_Client_Connected:
-      DEBUG.printf("LedManager CONNECTED state\n");
+//      DEBUG.printf("LedManager CONNECTED state\n");
       return animationDelay;
 
   }
@@ -230,7 +230,7 @@ int LedManagerTask::getPriority(LedState priorityState)
 
 void LedManagerTask::setNewState(bool wake)
 {
-  DEBUG.printf("LedManager setNewState\n");
+//  DEBUG.printf("LedManager setNewState\n");
 
 //  DEBUG.printf("state was: %d \n", state);
 
@@ -245,7 +245,7 @@ void LedManagerTask::setNewState(bool wake)
   LedState evseState = ledStateFromEvseState(this->evseState);
   int evsePriority = getPriority(evseState);
   if(evsePriority >= priority) {
-    DEBUG.printf("Picked EVSE..\n");
+//    DEBUG.printf("Picked EVSE..\n");
 
     newState = evseState;
     priority = evsePriority;

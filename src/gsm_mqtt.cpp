@@ -31,6 +31,9 @@ static long gsmNextMqttReconnectAttempt = 0;
 static unsigned long gsmMqttRestartTime = 0;
 String lastWillMsg = "";
 
+enum GSM_HANDLER_FLAGS {MODULE_IDLE = 1, INIT_MODULE, CONNECTED_TO_NETWORK, CONNECTED_TO_APN };
+volatile uint8_t gsm_handler_id = MODULE_IDLE;
+
 #include <WiFi.h>
 #include <TinyGsmClient.h>
 #include <PubSubClient.h>
@@ -55,7 +58,7 @@ WiFiClient nofos_wifi_client;
 PubSubClient mqtt;
 
 uint32_t lastReconnectAttempt = 0;
-bool modem_is_initialized = false;
+static boolean modem_is_initialized;
 
 bool config_mqtt_managed_enabled() {
   return true;
@@ -159,19 +162,25 @@ void sim800l_init()
 
   // Restart takes quite some time
   // To skip it, call init() instead of restart()
-  DBUG("Initializing SIM800L modem, wait 10 sec...");
-  modem_is_initialized = modem.restart();
-
-  if (!modem_is_initialized)
+  if (gsm_handler_id == MODULE_IDLE)
   {
-    checkSIMCardStatus();
-    DBUGLN(" ERROR: SIM800L unavailable or disconnected!");
-    return;
-  } 
+    DBUG("Initializing SIM800L modem, wait 10 sec...");
+    modem_is_initialized = modem.restart();
 
-  DBUGLN("OK: SIM800L ready!");
-  String modemInfo = modem.getModemInfo();
-  DBUGLN("Modem Info: " + modemInfo);
+    if (!modem_is_initialized)
+    {
+      checkSIMCardStatus();
+      DBUGLN(" ERROR: SIM800L unavailable or disconnected!");
+      gsm_handler_id = MODULE_IDLE;
+      return;
+    } 
+    gsm_handler_id = INIT_MODULE;
+    DBUGLN("OK: SIM800L ready!");
+    String modemInfo = modem.getModemInfo();
+    DBUGLN("Modem Info: " + modemInfo);
+  } 
+  
+  if (gsm_handler_id == MODULE_IDLE) return;
 
 #if TINY_GSM_USE_GPRS
   // Unlock your SIM card with a PIN if needed
@@ -187,28 +196,34 @@ void sim800l_init()
 #endif
 
   DBUG("Waiting for network...");
-  if (!modem.waitForNetwork()) {
+  if (!modem.waitForNetwork(3000U)) {
     checkSIMCardStatus();
     DBUGLN(" network fail");
     modem_is_initialized = false;
+    gsm_handler_id = MODULE_IDLE;
     return;
   }
   DBUGLN(" success");
 
   if (modem.isNetworkConnected()) {
+    gsm_handler_id = CONNECTED_TO_NETWORK;
     DBUGLN("Network connected");
   }
+
+if (gsm_handler_id != CONNECTED_TO_NETWORK) return;
 
 #if TINY_GSM_USE_GPRS
   // GPRS connection parameters are usually set after network registration
     DBUG("Connecting to " + String(apn));
     if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
       DBUGLN(" fail");
+      gsm_handler_id = MODULE_IDLE;
       return;
     }
     DBUGLN(" success");
 
   if (modem.isGprsConnected()) {
+    gsm_handler_id = CONNECTED_TO_APN;
     DBUGLN("GPRS connected");
   }
 #endif
@@ -253,14 +268,13 @@ void setup_modem()
     // Set GSM module baud rate
     // TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
     SIM800L_PORT.begin(115200, SERIAL_8N1, MODEM_RX, MODEM_TX);
-    delay(3000);
-
 }
 
 /* NOFOS MQTT API*/
 
 void nofos_mqtt_begin()
 {
+  setup_modem();
   DBUGLN("Begin GSM-MQTT...");
   mqtt.setServer(broker, brokerPort);
   mqtt.setCallback(gsm_mqtt_callback);
@@ -327,7 +341,7 @@ void nofos_mqtt_loop()
       gsmMqttRestartTime = 0;
       if (mqtt.connected())
       {
-          DBUGF("Disconnecting GSM_MQTT");
+          DBUGF("Disconnecting Nofos MQTT Client");
           mqtt.disconnect();
       }
       gsmNextMqttReconnectAttempt = 0;
@@ -336,7 +350,6 @@ void nofos_mqtt_loop()
   /* Reconnect MQTT Client*/
   if (config_mqtt_managed_enabled() && !mqtt.connected())
   {
-      unsigned long now = millis();
       // try and reconnect every x seconds
       if (millis() - gsmNextMqttReconnectAttempt > MQTT_NEXT_RECONNECT_ATTEMPT_TIMEOUT) 
       {
@@ -394,20 +407,17 @@ void gsm_modem_init()
 {
   // Init port baud and GPIO's
   setup_modem();
-  // Init SIM800L Module
-  sim800l_init();
 }
 
 void gsm_modem_restart()
 {
-  checkSIMCardStatus();
-  // Init SIM800L Module
+  // Reinit and reconfigure SIM800L Module
   sim800l_init();
 }
 
 boolean gsm_modem_is_initialized()
 {
-  return modem_is_initialized;
+  return (gsm_handler_id == CONNECTED_TO_APN);
 }
 
 boolean gsm_modem_is_connected()

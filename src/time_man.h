@@ -1,6 +1,7 @@
 #ifndef _OPENEVSE_TIME_H
 #define _OPENEVSE_TIME_H
 
+extern bool time_man_is_updated;
 extern void time_begin(const char *host);
 extern void time_loop();
 extern void time_check_now();

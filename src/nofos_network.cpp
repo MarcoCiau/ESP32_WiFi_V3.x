@@ -169,6 +169,7 @@ void fallback_network_handler()
   STEP 3. In WiFi_WITH_FALLBACK profile, after 10 WiFi connection attemps, we WILL switch to GSM fallback
   STEP 4. In WiFi_WITH_FALLBACK profile, if there is GSM connections troubles,  we will try reconnect to it  
   STEP 5. In WiFi_WITH_FALLBACK profile, after 10 GSM Connection attemps and there is no connection, we will back to WiFi  
+  STEP 6. In WiFi_WITH_FALLBACK profile, if device is in AP mode, we WILL switch to GSM fallback
 */ 
 
 
@@ -208,14 +209,14 @@ void fallback_network_handler()
     if (state == 2) wifiConnectionAttempsCounter++;
     else if (state == 1) wifiConnectionAttempsCounter = 0;
 
-    /* STEP 5 */
-    if (wifiConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS)
+    /* STEP 5 & STEP 6 */
+    bool APActivated = net_wifi_mode_is_ap();
+    if (wifiConnectionAttempsCounter > NET_MAX_CONNECT_ATTEMPTS || APActivated)
     {
       wifiConnectionAttempsCounter = 0;
       DBUGLN("\nINFO: WiFi max connections attemps reached, trying with fallback...\n");
       set_gsm_as_main_network();
       nofos_mqtt_restart();
-      // gsm_modem_restart();
       return;
     }
     /* Execute MQTT if WiFi is connected */

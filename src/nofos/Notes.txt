@@ -1,0 +1,32 @@
+Setup board for flashing:
+
+Connect:
+- Board POWER 5V and GND to power supply.
+- Board PROGRAM GND and IO0 to programmer GND
+- Board TX to programmer TX
+- Board RX to programmer RX
+
+Activate power supply
+Plug in USB
+Start programming
+
+Complete programming
+
+Unplug power
+Unplug USB
+Disconnect IO0
+Plug power + USB
+Start monitoring
+
+
+
+First build:
+gui/npm install
+
+When updating GUI:
+wipe \PIOworkspace\build
+gui/npm run build
+
+Build & monitor:
+pio run -t upload
+pio device monitor

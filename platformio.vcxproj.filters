@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Source Files\nofos">
+      <UniqueIdentifier>{29d877b6-b88e-4aae-b139-56889203fe47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="platformio.ini" />
@@ -346,5 +349,10 @@
     <ClInclude Include="src/web_static/web_server_static_files.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="src\nofos\Notes.txt">
+      <Filter>Source Files\nofos</Filter>
+    </Text>
   </ItemGroup>
 </Project>

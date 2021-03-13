@@ -22,6 +22,9 @@ enum NOFOS_NETWORK_STATE { WIFI_AS_MAIN_NETWORK = 1, GSM_AS_MAIN_NETWORK};
 uint8_t nofos_current_profile = ONLY_WIFI;
 uint8_t nofos_net_status = WIFI_AS_MAIN_NETWORK;
 
+boolean nofos_mqtt_initialized = false;
+boolean nofos_network_initialized = false;
+
 /* MQTT, GSM & WiFi Connections attemps counters */
 static uint8_t mqttConnectionAttempsCounter = 0; 
 static uint8_t gsmConnectionAttempsCounter = 0;
@@ -72,7 +75,7 @@ uint8_t nofos_network_load_profile() {
 }
 
 void nofos_network_profile_init() {
-
+  nofos_network_initialized = true;
   nofos_current_profile = nofos_network_load_profile();
   debug_nofos_network_profile(true);
   switch (nofos_current_profile)
@@ -255,11 +258,22 @@ void wifi_with_fallback_network_loop()
 void nofos_network_begin() 
 {
   DBUGLN("Nofos Network Begin...");
+  DBUGF("Network profile from EEPROM = %d\n", nofos_network_load_profile());
   gsm_modem_init();
+
   /* TODO: setting network profile MANUALLY for testing*/
-  config_nofos_network_profile(WIFI_WITH_FALLBACK);
-  nofos_network_profile_init();
-  nofos_mqtt_begin();
+  uint8_t network_profile_to_test = GSM_WITH_FALLBACK;
+  /* Save to EEPROM */
+  if (nofos_network_load_profile() != network_profile_to_test) config_nofos_network_profile(network_profile_to_test);
+
+
+  if (!nofos_network_initialized) nofos_network_profile_init();
+
+  if (!nofos_mqtt_initialized)
+  {
+    nofos_mqtt_begin();
+    nofos_mqtt_initialized = true;
+  }
   gsmModemConnectionAttempTimer = millis();
 }
 
@@ -280,8 +294,12 @@ void nofos_network_set_profile(int profile)
     DBUGLN("Nofos network profile config changed!!");
     nofos_current_profile = (uint8_t)profile;
     nofos_network_profile_init();
-    debug_nofos_network_profile(true);
-    nofos_mqtt_restart();
+    if (!nofos_mqtt_initialized)
+    {
+      nofos_mqtt_begin();
+      nofos_mqtt_initialized = true;
+    }
+    else nofos_mqtt_restart();
   } 
 }
 #endif // ENABLE_NOFOS_GTWY

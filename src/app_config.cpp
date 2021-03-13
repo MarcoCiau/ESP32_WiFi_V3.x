@@ -363,6 +363,7 @@ config_save_ohm(bool enable, String qohm)
 
 void config_nofos_network_profile(int profile_id)
 {
+  DBUGLN("set nofos network to EEPROM");
   config.set("nofos_network_profile", profile_id);
   config.commit();
 }
